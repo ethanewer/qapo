@@ -44,7 +44,6 @@ from verl.utils.torch_functional import check_device_is_available
 from verl.utils.vllm_utils import TensorLoRARequest, VLLMHijack, is_version_ge, patch_vllm_moe_model_weight_loader
 
 from .base import BaseShardingManager
-from hqq.core.quantize import BaseQuantizeConfig # type: ignore
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
@@ -224,6 +223,8 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
         return data.chunk(chunks=self.tp_size)[self.tp_rank]
 
     def update_params(self, updated_params, peft_config=None):
+        from hqq.core.quantize import BaseQuantizeConfig # type: ignore
+
         full_precision_model = self.model_runner_full_precision.model # type: ignore
         hqq_model = self.model_runner_hqq.model # type: ignore
 

@@ -41,7 +41,6 @@ from vllm import LLM, SamplingParams  # type: ignore
 from vllm.distributed import parallel_state as vllm_ps  # type: ignore
 from vllm.lora.request import LoRARequest  # type: ignore
 from vllm.worker.worker_base import WorkerWrapperBase  # type: ignore
-from hqq.utils.vllm import set_vllm_onthefly_hqq_quant  # type: ignore
 from vllm.model_executor.layers import linear  # type: ignore
 from verl import DataProto
 from verl.third_party.vllm import vllm_version
@@ -174,6 +173,9 @@ class HQQvLLMRollout(BaseRollout):
         torch.cuda.synchronize()
 
         original_init = linear.LinearBase.__init__
+
+        from hqq.utils.vllm import set_vllm_onthefly_hqq_quant  # type: ignore
+
         set_vllm_onthefly_hqq_quant(
             weight_bits=self.config.get("hqq_weight_bits", 4), 
             group_size=self.config.get("hqq_group_size", 64), 
