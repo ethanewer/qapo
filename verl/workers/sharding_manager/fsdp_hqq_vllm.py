@@ -123,11 +123,11 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
 
             peft_config = None
             peft_model = getattr(self.module, "_fsdp_wrapped_module", self.module)
-            if hasattr(peft_model, "peft_config"):
-                peft_config = peft_model.peft_config.get("default", None)
-                params = __collect_lora_params()
-            else:
-                params = self.module.state_dict()
+            # if hasattr(peft_model, "peft_config"):
+            #     peft_config = peft_model.peft_config.get("default", None)
+            #     params = __collect_lora_params()
+            # else:
+            params = self.module.state_dict()
             params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))  # type: ignore
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
 
@@ -185,7 +185,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
             raise NotImplementedError(f"vllm {vllm_version} is not supported for hqq rollout")
         else:
             self.inference_engine_full_precision.sleep(level=1)
-            self.inference_engine_hqq.sleep(level=1)
+            # self.inference_engine_hqq.sleep(level=1)
 
         self.module.train()
 
@@ -228,7 +228,8 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
         hqq_model = self.model_runner_hqq.model # type: ignore
 
         if peft_config:
-            raise NotImplementedError("PEFT is not supported for hqq rollout")
+            # raise NotImplementedError("PEFT is not supported for hqq rollout")
+            ...
 
         device = get_torch_device().current_device()  # used when fsdp2 set cpu_offload_policy
         loaded_params = full_precision_model.load_weights(
@@ -261,4 +262,4 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
 
         self.base_sync_done = True
         logger.info(f"vLLM load weights, loaded_params: {len(loaded_params) if loaded_params else -1}")
-        print("\n\n" + "="*100 + "\nIT WORKS :)\n" + "="*100 + "\n")
+        logger.info("\n\n" + "="*100 + "\nIT WORKS :)\n" + "="*100 + "\n")

@@ -153,22 +153,25 @@ class HQQvLLMRollout(BaseRollout):
             tensor_parallel_size=tensor_parallel_size,
             distributed_executor_backend="external_launcher",
             dtype=config.dtype,
-            enforce_eager=config.enforce_eager,
-            gpu_memory_utilization=config.gpu_memory_utilization,
+            enforce_eager=True,  # Force eager mode for initialization
+            gpu_memory_utilization=0.1,  # Use minimal memory
             disable_custom_all_reduce=True,
             disable_mm_preprocessor_cache=True,
             skip_tokenizer_init=False,
             max_model_len=max_model_len,
             load_format=load_format,
-            disable_log_stats=config.disable_log_stats,
-            max_num_batched_tokens=max_num_batched_tokens,
-            enable_chunked_prefill=config.enable_chunked_prefill,
-            enable_prefix_caching=True,
+            disable_log_stats=True,  # Disable logging
+            max_num_batched_tokens=1024,  # Use minimal batch size
+            enable_chunked_prefill=False,  # Disable unnecessary features
+            enable_prefix_caching=False,  # Disable caching
             trust_remote_code=trust_remote_code,
             seed=config.get("seed", 0),
             **lora_kwargs,
             **engine_kwargs,
         )
+        self.inference_engine_full_precision.sleep(level=1)
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
         original_init = linear.LinearBase.__init__
         set_vllm_onthefly_hqq_quant(
@@ -180,7 +183,7 @@ class HQQvLLMRollout(BaseRollout):
 
         self.inference_engine_hqq = LLM(
             model=model_path,
-            enable_sleep_mode=True,
+            enable_sleep_mode=False,
             tensor_parallel_size=tensor_parallel_size,
             distributed_executor_backend="external_launcher",
             dtype=config.dtype,
@@ -200,12 +203,10 @@ class HQQvLLMRollout(BaseRollout):
             **lora_kwargs,
             **engine_kwargs,
         )
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
         linear.LinearBase.__init__ = original_init
-
-        # Offload vllm model to reduce peak memory usage
-        self.inference_engine_full_precision.sleep(level=1)
-        self.inference_engine_hqq.sleep(level=1)
 
         kwargs = dict(
             n=1,
@@ -309,7 +310,8 @@ class HQQvLLMRollout(BaseRollout):
 
         lora_requests = None
         if self.lora_kwargs:
-            raise NotImplementedError("Lora is not supported for hqq rollout")
+            ...
+            # raise NotImplementedError("Lora is not supported for hqq rollout")
             # lora_int_ids = list(self.inference_engine.llm_engine.list_loras())
             # if len(lora_int_ids) > 0:
             #     lora_int_id = lora_int_ids[0]
