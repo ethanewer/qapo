@@ -37,11 +37,12 @@ import torch
 import torch.distributed
 from omegaconf import DictConfig, OmegaConf
 from tensordict import TensorDict
-from vllm import LLM, SamplingParams  # type: ignore
+from vllm import LLM, SamplingParams  # type: ignore     
 from vllm.distributed import parallel_state as vllm_ps  # type: ignore
 from vllm.lora.request import LoRARequest  # type: ignore
 from vllm.worker.worker_base import WorkerWrapperBase  # type: ignore
-
+from hqq.utils.vllm import set_vllm_onthefly_hqq_quant  # type: ignore
+from vllm.model_executor.layers import linear  # type: ignore
 from verl import DataProto
 from verl.third_party.vllm import vllm_version
 from verl.utils.debug import GPUMemoryLogger
@@ -74,7 +75,7 @@ def _repeat_interleave(value: Union[torch.Tensor, np.ndarray], repeats: int) -> 
         return np.repeat(value, repeats, axis=0)
 
 
-class vLLMRollout(BaseRollout):
+class HQQvLLMRollout(BaseRollout):
     def __init__(self, model_path: str, config: DictConfig, tokenizer, model_hf_config, **kwargs):
         """A vLLM rollout. It requires the module is supported by the vllm.
 
@@ -146,7 +147,7 @@ class vLLMRollout(BaseRollout):
         if config.get("limit_images", None):  # support for multi-image data
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
-        self.inference_engine = LLM(
+        self.inference_engine_full_precision = LLM(
             model=model_path,
             enable_sleep_mode=True,
             tensor_parallel_size=tensor_parallel_size,
@@ -169,8 +170,42 @@ class vLLMRollout(BaseRollout):
             **engine_kwargs,
         )
 
+        original_init = linear.LinearBase.__init__
+        set_vllm_onthefly_hqq_quant(
+            weight_bits=self.config.get("hqq_weight_bits", 4), 
+            group_size=self.config.get("hqq_group_size", 64), 
+            quant_mode=self.config.get("hqq_quant_mode", "static"), 
+            skip_modules=["lm_head"],
+        )
+
+        self.inference_engine_hqq = LLM(
+            model=model_path,
+            enable_sleep_mode=True,
+            tensor_parallel_size=tensor_parallel_size,
+            distributed_executor_backend="external_launcher",
+            dtype=config.dtype,
+            enforce_eager=config.enforce_eager,
+            gpu_memory_utilization=config.gpu_memory_utilization,
+            disable_custom_all_reduce=True,
+            disable_mm_preprocessor_cache=True,
+            skip_tokenizer_init=False,
+            max_model_len=max_model_len,
+            load_format=load_format,
+            disable_log_stats=config.disable_log_stats,
+            max_num_batched_tokens=max_num_batched_tokens,
+            enable_chunked_prefill=config.enable_chunked_prefill,
+            enable_prefix_caching=True,
+            trust_remote_code=trust_remote_code,
+            seed=config.get("seed", 0),
+            **lora_kwargs,
+            **engine_kwargs,
+        )
+
+        linear.LinearBase.__init__ = original_init
+
         # Offload vllm model to reduce peak memory usage
-        self.inference_engine.sleep(level=1)
+        self.inference_engine_full_precision.sleep(level=1)
+        self.inference_engine_hqq.sleep(level=1)
 
         kwargs = dict(
             n=1,
@@ -211,16 +246,14 @@ class vLLMRollout(BaseRollout):
     @GPUMemoryLogger(role="vllm rollout spmd", logger=logger)
     @torch.no_grad()
     def generate_sequences(self, prompts: DataProto, **kwargs) -> DataProto:
-        # rebuild vllm cache engine
         if (
             vllm_version
             in (
                 "0.5.4",
-                "0.6.3",
+                "0.6.3"
             )
-            and self.config.free_cache_engine
         ):
-            self.inference_engine.init_cache_engine()
+            raise NotImplementedError(f"vllm {vllm_version} is not supported for hqq rollout")
 
         idx = prompts.batch["input_ids"]  # (bs, prompt_length)
         # left-padded attention_mask
@@ -276,14 +309,15 @@ class vLLMRollout(BaseRollout):
 
         lora_requests = None
         if self.lora_kwargs:
-            lora_int_ids = list(self.inference_engine.llm_engine.list_loras())
-            if len(lora_int_ids) > 0:
-                lora_int_id = lora_int_ids[0]
-                lora_requests = [LoRARequest(lora_name=f"{lora_int_id}", lora_int_id=lora_int_id, lora_path="/simon-stub-path")] * batch_size
+            raise NotImplementedError("Lora is not supported for hqq rollout")
+            # lora_int_ids = list(self.inference_engine.llm_engine.list_loras())
+            # if len(lora_int_ids) > 0:
+            #     lora_int_id = lora_int_ids[0]
+            #     lora_requests = [LoRARequest(lora_name=f"{lora_int_id}", lora_int_id=lora_int_id, lora_path="/simon-stub-path")] * batch_size
 
         # users can customize different sampling_params at different run
         with self.update_sampling_params(**kwargs):
-            outputs = self.inference_engine.generate(
+            outputs = self.inference_engine_hqq.generate(
                 prompts=vllm_inputs,  # because we have already convert it to prompt token id
                 sampling_params=self.sampling_params,
                 lora_request=lora_requests,
@@ -347,21 +381,10 @@ class vLLMRollout(BaseRollout):
             batch_size=batch_size,
         )
 
-        # free vllm cache engine
-        if (
-            vllm_version
-            in (
-                "0.5.4",
-                "0.6.3",
-            )
-            and self.config.free_cache_engine
-        ):
-            self.inference_engine.free_cache_engine()
-
         return DataProto(batch=batch, non_tensor_batch=non_tensor_batch)
 
 
-class vLLMAsyncRollout:
+class HQQvLLMAsyncRollout:
     """vLLMAsyncRollout is a thin wrapper of WorkerWrapperBase,
     which is engine in single worker process.
     """
