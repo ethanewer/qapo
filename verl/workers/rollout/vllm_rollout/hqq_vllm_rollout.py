@@ -146,6 +146,7 @@ class HQQvLLMRollout(BaseRollout):
         if config.get("limit_images", None):  # support for multi-image data
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
+        print("\nLOADING VLLM 1\n")
         self.inference_engine_full_precision = LLM(
             model=model_path,
             enable_sleep_mode=True,
@@ -168,10 +169,11 @@ class HQQvLLMRollout(BaseRollout):
             **lora_kwargs,
             **engine_kwargs,
         )
-        self.inference_engine_full_precision.sleep(level=1)
-        torch.cuda.empty_cache()
-        torch.cuda.synchronize()
+        # self.inference_engine_full_precision.sleep(level=1)
+        # torch.cuda.empty_cache()
+        # torch.cuda.synchronize()
 
+        print("\nLOADING VLLM 2\n")
         original_init = linear.LinearBase.__init__
 
         from hqq.utils.vllm import set_vllm_onthefly_hqq_quant  # type: ignore
@@ -209,6 +211,7 @@ class HQQvLLMRollout(BaseRollout):
         torch.cuda.synchronize()
 
         linear.LinearBase.__init__ = original_init
+        print("\nDONE\n")
 
         kwargs = dict(
             n=1,
