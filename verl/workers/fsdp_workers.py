@@ -384,7 +384,7 @@ class ActorRolloutRefWorker(Worker):
         dp = self.world_size // infer_tp
         assert self.world_size % infer_tp == 0, f"rollout world_size: {self.world_size} is not divisible by infer_tp: {infer_tp}"
         rollout_device_mesh = init_device_mesh(device_name, mesh_shape=(dp, infer_tp), mesh_dim_names=["dp", "infer_tp"])
-        rollout_name = self.config.rollout.name
+        rollout_name = "vllm_hqq"  # self.config.rollout.name
         if rollout_name == "hf":
             from verl.workers.rollout import HFRollout
             from verl.workers.sharding_manager.base import BaseShardingManager
@@ -414,6 +414,31 @@ class ActorRolloutRefWorker(Worker):
             log_gpu_memory_usage(f"After building {rollout_name} rollout", logger=logger)
             full_params = torch.distributed.get_world_size() == 1
             rollout_sharding_manager = FSDPVLLMShardingManager(
+                module=self.actor_module_fsdp,
+                inference_engine=rollout.inference_engine,
+                model_config=self.actor_model_config,
+                full_params=full_params,
+                device_mesh=rollout_device_mesh,
+                offload_param=self._is_offload_param,
+                load_format=self.config.rollout.load_format,
+                layered_summon=self.config.rollout.get("layered_summon", False),
+            )
+            log_gpu_memory_usage("After building sharding manager", logger=logger)
+        elif rollout_name == "vllm_hqq":
+            from verl.workers.rollout.vllm_rollout import vllm_mode, vLLMRollout
+            from verl.workers.sharding_manager.fsdp_hqq_vllm import HQQFSDPVLLMShardingManager
+
+            log_gpu_memory_usage(f"Before building {rollout_name} rollout", logger=logger)
+            local_path = copy_to_local(self.config.model.path, use_shm=self.config.model.get("use_shm", False))
+            lora_kwargs = {"lora_kwargs": {"enable_lora": True, "max_loras": 1, "max_lora_rank": self._lora_rank}} if self._is_lora else {}
+            # lora_kwargs = {}
+            from verl.workers.rollout.vllm_rollout.hqq_vllm_rollout import HQQvLLMRollout
+
+            rollout = HQQvLLMRollout(model_path=local_path, config=self.config.rollout, tokenizer=self.tokenizer, model_hf_config=self.actor_model_config, device_mesh=rollout_device_mesh, trust_remote_code=trust_remote_code, **lora_kwargs)
+
+            log_gpu_memory_usage(f"After building {rollout_name} rollout", logger=logger)
+            full_params = torch.distributed.get_world_size() == 1
+            rollout_sharding_manager = HQQFSDPVLLMShardingManager(
                 module=self.actor_module_fsdp,
                 inference_engine=rollout.inference_engine,
                 model_config=self.actor_model_config,
@@ -850,7 +875,7 @@ class CriticWorker(Worker):
         torch_dtype = self.config.model.fsdp_config.get("model_dtype", "fp32")
         torch_dtype = PrecisionType.to_dtype(torch_dtype)
 
-        from transformers import AutoConfig, AutoModelForTokenClassification
+        from transformers import AutoConfig
 
         critic_model_config = AutoConfig.from_pretrained(local_path, attn_implementation="flash_attention_2", trust_remote_code=config.model.get("trust_remote_code", False))
         critic_model_config.num_labels = 1
