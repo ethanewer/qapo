@@ -130,7 +130,11 @@ class Tracking:
     def log(self, data, step, backend=None):
         for default_backend, logger_instance in self.logger.items():
             if backend is None or default_backend in backend:
-                logger_instance.log(data=data, step=step)
+                if default_backend == "wandb":
+                    # For wandb, we need to log metrics with step
+                    logger_instance.log(data, step=step)
+                else:
+                    logger_instance.log(data=data, step=step)
 
     def __del__(self):
         if "wandb" in self.logger:
