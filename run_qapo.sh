@@ -49,6 +49,6 @@ python3 -m verl.trainer.main_ppo \
     trainer.experiment_name='qwen2_5_3b_qapo_4bit' \
     trainer.n_gpus_per_node=4 \
     trainer.nnodes=1 \
-    trainer.save_freq=20 \
+    trainer.save_freq=10 \
     trainer.test_freq=5 \
     trainer.total_epochs=15 $@
