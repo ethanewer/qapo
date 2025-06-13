@@ -311,7 +311,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                 if name[-len(".W_q") :] == ".W_q":
                     quant_layer = model.get_submodule(name[: -len(".W_q")])
                     quant_params = {k: v for k, v in quant_layer.quant_config["weight_quant_params"].items() if k not in ["channel_wise", "optimize", "round_zero"]}
-                    param.set_(
+                    param.data.copy_(
                         quant_layer.from_weights(
                             weight=state_dict[name[: -len(".quant_layer.W_q")] + ".weight"],
                             bias=None,
@@ -319,7 +319,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                         ).W_q
                     )
                 else:
-                    param.set_(state_dict[name].to(param.device, param.dtype))
+                    param.data.copy_(state_dict[name].to(param.device, param.dtype))
         # -------------------------
 
         self.base_sync_done = True
