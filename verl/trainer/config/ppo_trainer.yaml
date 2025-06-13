@@ -307,6 +307,9 @@ actor_rollout_ref:
     # actor_rollout_ref.rollout.name: hf/vllm/sglang.
     name: vllm
 
+    # rollout model precision if rollout.name=vllm_hqq
+    hqq_weight_bits: 4
+
     # sync: LLM, async: AsyncLLM
     mode: sync
 

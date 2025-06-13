@@ -259,8 +259,15 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
         from hqq.core.quantize import BaseQuantizeConfig
 
         class NoVLLMConfigWarning(logging.Filter):
+            skip_warnings = [
+                "Failed A16Wn gemlite conversion",
+                "max_model_len was is not set",
+                "max_num_seqs was is not set.",
+                "Current vLLM config is not set.",
+            ]
+
             def filter(self, record):
-                return "Current vLLM config is not set." not in record.getMessage()
+                return all(warning not in record.getMessage() for warning in self.skip_warnings)
 
         logging.getLogger("vllm.config").addFilter(NoVLLMConfigWarning())
 

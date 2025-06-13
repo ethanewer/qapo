@@ -155,6 +155,12 @@ class HQQvLLMRollout(BaseRollout):
             quant_mode=self.config.get("hqq_quant_mode", "static"),
             skip_modules=["lm_head"],
         )
+        print("HQQ INFO\n", dict(
+            weight_bits=self.config.get("hqq_weight_bits", 4),
+            group_size=self.config.get("hqq_group_size", 64),
+            quant_mode=self.config.get("hqq_quant_mode", "static"),
+            skip_modules=["lm_head"],
+        ))
         # -------------------------
 
         self.inference_engine = LLM(
