@@ -27,14 +27,14 @@ try:
     # for torch 2.5+
     from torch.distributed.tensor import DTensor
 except ImportError:
-    from torch.distributed._tensor import DTensor  # type: ignore
+    from torch.distributed._tensor import DTensor
 
 from dataclasses import asdict
 
 from verl import DataProto
 from verl.protocol import all_gather_data_proto
 from verl.third_party.vllm import LLM, vllm_version
-from verl.third_party.vllm import parallel_state as vllm_ps  # type: ignore
+from verl.third_party.vllm import parallel_state as vllm_ps
 from verl.utils.debug import GPUMemoryLogger, log_gpu_memory_usage
 from verl.utils.debug.performance import _timer
 from verl.utils.device import get_torch_device
@@ -51,7 +51,7 @@ logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
 
 class HQQFSDPVLLMShardingManager(BaseShardingManager):
     @check_device_is_available()
-    def __init__(self, module: FSDP, inference_engine: LLM, model_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):  # type: ignore
+    def __init__(self, module: FSDP, inference_engine: LLM, model_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):
         self.module = module
         # For AsyncLLM, inference_engine and model_runner are defer initialized in vLLMAsyncRollout.load_model
         self.inference_engine = inference_engine
@@ -144,7 +144,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                         name = name.replace("_fsdp_wrapped_module.", "").replace(".base_layer", "")
                         lora_params[name] = param.detach().cpu()
                     model = model.to(orig_dev)
-            return lora_params  # type: ignore
+            return lora_params
 
         # NOTE: Basically, we only need `get_torch_device().empty_cache()` before vllm wake_up and
         # after vllm sleep, since vllm has its own caching memory allocator CuMemAllocator.
@@ -168,7 +168,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                 params = __collect_lora_params()
             else:
                 params = self.module.state_dict()
-            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))  # type: ignore
+            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
 
             # Copy, not share memory
@@ -271,7 +271,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
 
         logging.getLogger("vllm.config").addFilter(NoVLLMConfigWarning())
 
-        model = self.model_runner.model  # type: ignore
+        model = self.model_runner.model
         tmp_model = type(model)(vllm_config=self.inference_engine.llm_engine.vllm_config)
         # -----------------------------------
 
@@ -303,7 +303,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
         # --------------- NEW ---------------
         patch_vllm_moe_model_weight_loader(tmp_model)
         device = get_torch_device().current_device()  # used when fsdp2 set cpu_offload_policy
-        loaded_params = tmp_model.load_weights(((name, param.to(device, non_blocking=True).full_tensor() if isinstance(param, DTensor) else param) for name, param in updated_params.items()))  # type: ignore
+        loaded_params = tmp_model.load_weights(((name, param.to(device, non_blocking=True).full_tensor() if isinstance(param, DTensor) else param) for name, param in updated_params.items()))
         state_dict = tmp_model.state_dict()
 
         with torch.no_grad():

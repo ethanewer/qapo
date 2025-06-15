@@ -21,7 +21,7 @@ class QuantizeSTE(torch.autograd.Function):
         return (x_quantized - zero) * scale
 
     @staticmethod
-    def backward(ctx: Any, grad_out: Tensor) -> Tuple[Tensor, None, None, None]:  # type: ignore
+    def backward(ctx: Any, grad_out: Tensor) -> Tuple[Tensor, None, None, None]:
         return grad_out, None, None, None
 
 
@@ -40,7 +40,7 @@ class FakeHQQLinear(nn.Linear):
             with torch.no_grad():
                 _, self.fake_hqq_data.quant_data = Quantizer.quantize(
                     self.weight.detach(),
-                    device=input.device,  # type: ignore
+                    device=input.device,
                     compute_dtype=input.dtype,
                     **self.fake_hqq_data.quant_config,
                 )
@@ -52,7 +52,7 @@ class FakeHQQLinear(nn.Linear):
         else:
             weight = self.weight.view(self.fake_hqq_data.quant_config["group_size"], -1)
 
-        fake_quantized_weight: torch.Tensor = QuantizeSTE.apply(  # type: ignore
+        fake_quantized_weight: torch.Tensor = QuantizeSTE.apply(
             weight,
             self.fake_hqq_data.quant_data["scale"].detach_(),
             self.fake_hqq_data.quant_data["zero"].detach_(),
@@ -63,7 +63,7 @@ class FakeHQQLinear(nn.Linear):
 
 
 def patch_linear_with_fake_hqq(linear: nn.Linear, quant_config: dict[str, Any]) -> None:
-    linear.fake_hqq_data = FakeHQQData(  # type: ignore
+    linear.fake_hqq_data = FakeHQQData(
         quant_config=quant_config,
         max_quantized_value=round(2 ** quant_config["nbits"] - 1),
         quant_data=None,
