@@ -20,15 +20,15 @@ import json
 import warnings
 from typing import List, Optional
 
-import datasets  # type: ignore
-import faiss  # type: ignore
+import datasets
+import faiss
 import numpy as np
 import torch
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
-from tqdm import tqdm  # type: ignore  # type: ignore
-from transformers import AutoModel, AutoTokenizer  # type: ignore
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
 
 
 def load_corpus(corpus_path: str):
@@ -53,8 +53,8 @@ def load_model(model_path: str, use_fp16: bool = False):
 
 def pooling(pooler_output, last_hidden_state, attention_mask=None, pooling_method="mean"):
     if pooling_method == "mean":
-        last_hidden = last_hidden_state.masked_fill(~attention_mask[..., None].bool(), 0.0)  # type: ignore
-        return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]  # type: ignore
+        last_hidden = last_hidden_state.masked_fill(~attention_mask[..., None].bool(), 0.0)
+        return last_hidden.sum(dim=1) / attention_mask.sum(dim=1)[..., None]
     elif pooling_method == "cls":
         return last_hidden_state[:, 0]
     elif pooling_method == "pooler":
@@ -128,17 +128,17 @@ class BaseRetriever:
     def _batch_search(self, query_list: List[str], num: int, return_score: bool):
         raise NotImplementedError
 
-    def search(self, query: str, num: Optional[int] = None, return_score: bool = False):
-        return self._search(query, num, return_score)  # type: ignore
+    def search(self, query: str, num: int = None, return_score: bool = False):
+        return self._search(query, num, return_score)
 
-    def batch_search(self, query_list: List[str], num: Optional[int] = None, return_score: bool = False):
-        return self._batch_search(query_list, num, return_score)  # type: ignore
+    def batch_search(self, query_list: List[str], num: int = None, return_score: bool = False):
+        return self._batch_search(query_list, num, return_score)
 
 
 class BM25Retriever(BaseRetriever):
     def __init__(self, config):
         super().__init__(config)
-        from pyserini.search.lucene import LuceneSearcher  # type: ignore
+        from pyserini.search.lucene import LuceneSearcher
 
         self.searcher = LuceneSearcher(self.index_path)
         self.contain_doc = self._check_contain_doc()
@@ -149,7 +149,7 @@ class BM25Retriever(BaseRetriever):
     def _check_contain_doc(self):
         return self.searcher.doc(0).raw() is not None
 
-    def _search(self, query: str, num: Optional[int] = None, return_score: bool = False):  # type: ignore
+    def _search(self, query: str, num: int = None, return_score: bool = False):
         if num is None:
             num = self.topk
         hits = self.searcher.search(query, num)
@@ -159,7 +159,7 @@ class BM25Retriever(BaseRetriever):
             else:
                 return []
         scores = [hit.score for hit in hits]
-        if len(hits) < num:  # type: ignore
+        if len(hits) < num:
             warnings.warn("Not enough documents retrieved!", stacklevel=2)
         else:
             hits = hits[:num]
@@ -175,7 +175,7 @@ class BM25Retriever(BaseRetriever):
         else:
             return results
 
-    def _batch_search(self, query_list: List[str], num: Optional[int] = None, return_score: bool = False):
+    def _batch_search(self, query_list: List[str], num: int = None, return_score: bool = False):
         results = []
         scores = []
         for query in query_list:
@@ -203,10 +203,10 @@ class DenseRetriever(BaseRetriever):
         self.topk = config.retrieval_topk
         self.batch_size = config.retrieval_batch_size
 
-    def _search(self, query: str, num: Optional[int] = None, return_score: bool = False):
+    def _search(self, query: str, num: int = None, return_score: bool = False):
         if num is None:
             num = self.topk
-        query_emb = self.encoder.encode(query)  # type: ignore
+        query_emb = self.encoder.encode(query)
         scores, idxs = self.index.search(query_emb, k=num)
         idxs = idxs[0]
         scores = scores[0]
@@ -216,11 +216,12 @@ class DenseRetriever(BaseRetriever):
         else:
             return results
 
-    def _batch_search(self, query_list: List[str], num: Optional[int] = None, return_score: bool = False):
+    def _batch_search(self, query_list: List[str], num: int = None, return_score: bool = False):
         if isinstance(query_list, str):
             query_list = [query_list]
         if num is None:
             num = self.topk
+
         results = []
         scores = []
         for start_idx in tqdm(range(0, len(query_list), self.batch_size), desc="Retrieval process: "):
@@ -234,7 +235,7 @@ class DenseRetriever(BaseRetriever):
             flat_idxs = sum(batch_idxs, [])
             batch_results = load_docs(self.corpus, flat_idxs)
             # chunk them back
-            batch_results = [batch_results[i * num : (i + 1) * num] for i in range(len(batch_idxs))]  # type: ignore
+            batch_results = [batch_results[i * num : (i + 1) * num] for i in range(len(batch_idxs))]
 
             results.extend(batch_results)
             scores.extend(batch_scores)

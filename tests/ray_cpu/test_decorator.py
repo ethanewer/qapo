@@ -16,7 +16,7 @@ import asyncio
 import time
 
 import pytest
-import ray  # type: ignore
+import ray
 import torch
 from tensordict import TensorDict
 

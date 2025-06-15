@@ -19,7 +19,7 @@ import itertools
 
 import torch
 import torch.distributed
-from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input  # type: ignore
+from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
 from torch import nn, optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -91,7 +91,7 @@ class DataParallelPRIMERewardModel:
                 )
 
             if self.ulysses_sequence_parallel_size > 1:
-                rm_log_labels = gather_outpus_and_unpad(rm_log_labels, gather_dim=0, unpad_dim=0, padding_size=pad_size)  # type: ignore
+                rm_log_labels = gather_outpus_and_unpad(rm_log_labels, gather_dim=0, unpad_dim=0, padding_size=pad_size)
             rm_log_labels = pad_input(hidden_states=rm_log_labels.unsqueeze(-1), indices=indices, batch=batch_size, seqlen=seqlen).squeeze(-1)[:, -num_actions - 1 : -1]
 
         else:
@@ -116,9 +116,9 @@ class DataParallelPRIMERewardModel:
             with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
                 if self.ulysses_sequence_parallel_size > 1 and self.use_remove_padding:
                     ref_output = self.ref_module(
-                        input_ids=input_ids_rmpad,  # type: ignore
+                        input_ids=input_ids_rmpad,
                         attention_mask=None,
-                        position_ids=position_ids_rmpad,  # type: ignore
+                        position_ids=position_ids_rmpad,
                         use_cache=False,
                     )
 
@@ -128,10 +128,10 @@ class DataParallelPRIMERewardModel:
 
                     else:
                         ref_output_logits = ref_output.logits.squeeze(0)
-                        ref_log_labels = verl_F.logprobs_from_logits(logits=ref_output_logits, labels=input_ids_rmpad_rolled)  # type: ignore
+                        ref_log_labels = verl_F.logprobs_from_logits(logits=ref_output_logits, labels=input_ids_rmpad_rolled)
 
-                    ref_log_labels = gather_outpus_and_unpad(ref_log_labels, gather_dim=0, unpad_dim=0, padding_size=pad_size)  # type: ignore
-                    ref_log_labels = pad_input(hidden_states=ref_log_labels.unsqueeze(-1), indices=indices, batch=batch_size, seqlen=seqlen).squeeze(-1)[:, -num_actions - 1 : -1]  # type: ignore
+                    ref_log_labels = gather_outpus_and_unpad(ref_log_labels, gather_dim=0, unpad_dim=0, padding_size=pad_size)
+                    ref_log_labels = pad_input(hidden_states=ref_log_labels.unsqueeze(-1), indices=indices, batch=batch_size, seqlen=seqlen).squeeze(-1)[:, -num_actions - 1 : -1]
                 else:
                     ref_output = self.ref_module(
                         input_ids=micro_batch["input_ids"],
@@ -241,7 +241,7 @@ class DataParallelPRIMERewardModel:
         rm_scores = self.prime_norm(rm_scores)
 
         if use_dynamic_bsz:
-            indices = list(itertools.chain.from_iterable(indices))  # type: ignore
+            indices = list(itertools.chain.from_iterable(indices))
             assert len(indices) == rm_scores.size(0), f"{len(indices)} vs. {rm_scores.size()}"
             revert_indices = torch.tensor(get_reverse_idx(indices), dtype=torch.long)
             rm_scores = rm_scores[revert_indices]
@@ -276,27 +276,27 @@ class DataParallelPRIMERewardModel:
         rm_scores_lst = []
         q_lst = []
 
-        for batch_idx, data in enumerate(dataloader):  # type: ignore
+        for batch_idx, data in enumerate(dataloader):
             # split batch into micro_batches
             mini_batch = data
             if self.config.use_dynamic_bsz:
                 max_token_len = self.config.ppo_max_token_len_per_gpu * self.ulysses_sequence_parallel_size
                 micro_batches, _ = rearrange_micro_batches(batch=mini_batch, max_token_len=max_token_len)
             else:
-                micro_batches = mini_batch.split(self.config.micro_batch_size_per_gpu)  # type: ignore
+                micro_batches = mini_batch.split(self.config.micro_batch_size_per_gpu)
                 self.gradient_accumulation = self.config.mini_batch_size // self.config.micro_batch_size_per_gpu
 
             self.reward_optimizer.zero_grad()
 
             for data in micro_batches:
-                data = data.cuda()  # type: ignore
+                data = data.cuda()
                 attention_mask = data["attention_mask"]
                 acc = data["acc"]
 
                 prompt_ids = data["prompts"]
-                prompt_length = prompt_ids.shape[-1]  # type: ignore
+                prompt_length = prompt_ids.shape[-1]
 
-                response_mask = attention_mask[:, prompt_length:]  # type: ignore
+                response_mask = attention_mask[:, prompt_length:]
 
                 rm_score, q = self._forward_micro_batch(data, prompt_length)
 
@@ -332,7 +332,7 @@ class DataParallelPRIMERewardModel:
                 else:
                     raise NotImplementedError
 
-                data = {"reward_model/dpo_loss": dpo_loss.detach().item()}  # type: ignore
+                data = {"reward_model/dpo_loss": dpo_loss.detach().item()}
 
                 if self.config.use_dynamic_bsz:
                     # relative to the dynamic bsz
@@ -342,11 +342,11 @@ class DataParallelPRIMERewardModel:
 
                 loss.backward()
 
-                append_to_dict(metrics, data)  # type: ignore
+                append_to_dict(metrics, data)
 
             grad_norm = self._optimizer_step()
-            data = {"reward_model/grad_norm": grad_norm.detach().item()}  # type: ignore
-            append_to_dict(metrics, data)  # type: ignore
+            data = {"reward_model/grad_norm": grad_norm.detach().item()}
+            append_to_dict(metrics, data)
         self.reward_optimizer.zero_grad()
 
         rm_scores = torch.cat(rm_scores_lst, dim=0)

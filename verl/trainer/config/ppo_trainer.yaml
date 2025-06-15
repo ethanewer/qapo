@@ -238,18 +238,6 @@ actor_rollout_ref:
     # configs for FSDP
     fsdp_config:
 
-      # Whether to use quantization aware training with hqq quantization
-      use_hqq_qat: false
-
-      # Quantization config if actor_rollout_ref.use_hqq_qat=true
-      hqq_qat_config:
-        nbits: 4
-        group_size: 64
-        axis: 1
-        round_zero: true
-        optimize: false
-        bitpack: false
-
       # policy for wrapping the model
       wrap_policy:
       
@@ -316,14 +304,11 @@ actor_rollout_ref:
   # Rollout model config.
   rollout:
 
-    # actor_rollout_ref.rollout.name: hf/vllm/sglang (vllm_hqq for qapo).
-    name: vllm_hqq
+    # actor_rollout_ref.rollout.name: hf/vllm/sglang.
+    name: vllm
 
-    # hqq config if rollout.name=vllm_hqq
-    hqq_config:
-      weight_bits: 4
-      group_size: 64
-      quant_mode: static
+    # rollout model precision if rollout.name=vllm_hqq
+    hqq_weight_bits: 4
 
     # sync: LLM, async: AsyncLLM
     mode: sync

@@ -19,8 +19,8 @@ Note that we don't combine the main with ray_trainer as ray_trainer is used by o
 
 import os
 
-import hydra  # type: ignore
-import ray  # type: ignore
+import hydra
+import ray
 
 from verl.trainer.ppo.reward import load_reward_manager
 from verl.utils.device import is_cuda_available

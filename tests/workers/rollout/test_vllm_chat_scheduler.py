@@ -16,7 +16,7 @@ from typing import Any, Tuple
 
 import numpy as np
 import pytest
-import ray  # type: ignore
+import ray
 from omegaconf import DictConfig, OmegaConf
 from transformers.utils import get_json_schema
 

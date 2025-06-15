@@ -125,7 +125,7 @@ if __name__ == "__main__":
         sft_test_dataset["prompt"].append(o[0])
         sft_test_dataset["response"].append(o[1])
 
-    import pandas as pd  # type: ignore
+    import pandas as pd
 
     sft_train_dataset = pd.DataFrame(data=sft_train_dataset)
     sft_test_dataset = pd.DataFrame(data=sft_test_dataset)

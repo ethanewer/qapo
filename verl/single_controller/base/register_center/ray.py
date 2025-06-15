@@ -14,7 +14,7 @@
 
 from typing import Dict
 
-import ray  # type: ignore
+import ray
 
 
 @ray.remote

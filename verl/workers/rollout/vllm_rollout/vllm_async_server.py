@@ -16,7 +16,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cloudpickle
-import ray  # type: ignore
+import ray
 from omegaconf import DictConfig
 from starlette.requests import Request
 from starlette.responses import JSONResponse, StreamingResponse

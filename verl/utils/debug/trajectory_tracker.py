@@ -22,7 +22,7 @@ import os
 import tempfile
 from collections import deque
 
-import ray  # type: ignore
+import ray
 import torch
 
 from verl.utils.hdfs_io import copy, makedirs

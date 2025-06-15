@@ -52,7 +52,7 @@ from sglang.srt.utils import (
 from tensordict import TensorDict
 from torch.distributed.device_mesh import DeviceMesh, init_device_mesh
 from torch.nn.utils.rnn import pad_sequence
-from transformers import PreTrainedTokenizer  # type: ignore
+from transformers import PreTrainedTokenizer
 
 from verl import DataProto
 from verl.third_party.sglang import parallel_state as sglang_ps
@@ -80,7 +80,7 @@ from verl.workers.rollout.sglang_rollout.utils import broadcast_pyobj
 try:
     from sglang.srt.function_call.function_call_parser import FunctionCallParser
 except ImportError:
-    from sglang.srt.function_call_parser import FunctionCallParser  # type: ignore
+    from sglang.srt.function_call_parser import FunctionCallParser
 
 
 logger = logging.getLogger(__file__)
@@ -138,12 +138,12 @@ class AsyncEngine(sglang.srt.entrypoints.engine.Engine):
         # default to use dummy load format, which need to reload weights in first time
         self._need_reload = True
 
-    async def release_memory_occupation(self):  # type: ignore
+    async def release_memory_occupation(self):
         """Release GPU occupation temporarily."""
         obj = ReleaseMemoryOccupationReqInput()
         return await self.tokenizer_manager.release_memory_occupation(obj, None)
 
-    async def resume_memory_occupation(self):  # type: ignore
+    async def resume_memory_occupation(self):
         """Resume GPU occupation."""
 
         # because __init__ is a sync method, it can not call the async release_memory_occupation
@@ -155,7 +155,7 @@ class AsyncEngine(sglang.srt.entrypoints.engine.Engine):
         obj = ResumeMemoryOccupationReqInput()
         return await self.tokenizer_manager.resume_memory_occupation(obj, None)
 
-    async def update_weights_from_tensor(  # type: ignore
+    async def update_weights_from_tensor(
         self,
         named_tensors: List[Tuple[str, torch.Tensor]],  # noqa: UP006
         load_format: Optional[str] = None,
@@ -170,7 +170,7 @@ class AsyncEngine(sglang.srt.entrypoints.engine.Engine):
         )
         return await self.tokenizer_manager.update_weights_from_tensor(obj, None)
 
-    async def flush_cache(self):  # type: ignore
+    async def flush_cache(self):
         return await self.tokenizer_manager.flush_cache()
 
 
@@ -306,7 +306,7 @@ class SGLangRollout(BaseRollout):
                 mesh_dim_names=["dp", "tp", "pp"],
             )
 
-            self._device_mesh_cpu = init_device_mesh("cpu", **device_mesh_kwargs)  # type: ignore
+            self._device_mesh_cpu = init_device_mesh("cpu", **device_mesh_kwargs)
 
         self._rank = self._device_mesh_cpu.get_rank()
         self._tp_rank = self._device_mesh_cpu["tp"].get_local_rank()
@@ -317,7 +317,7 @@ class SGLangRollout(BaseRollout):
         visible_devices = [None] * self._device_mesh_cpu.size(1)
 
         torch.distributed.all_gather_object(visible_devices, os.environ["CUDA_VISIBLE_DEVICES"], self._device_mesh_cpu.get_group("tp"))
-        self.visible_devices_set = set(",".join(visible_devices).split(","))  # type: ignore
+        self.visible_devices_set = set(",".join(visible_devices).split(","))
         os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(sorted(list(self.visible_devices_set)))
 
     def _verify_config(self, model_hf_config):
@@ -339,8 +339,8 @@ class SGLangRollout(BaseRollout):
             [ip, port] = broadcast_pyobj(
                 [ip, port],
                 rank=self._rank,
-                dist_group=self._device_mesh_cpu.get_group("tp"),  # type: ignore
-                src=self._device_mesh_cpu["tp"].mesh[0].item(),  # type: ignore
+                dist_group=self._device_mesh_cpu.get_group("tp"),
+                src=self._device_mesh_cpu["tp"].mesh[0].item(),
                 force_cpu_device=False,
             )
             dist_init_addr = f"[{ip}]:{port}" if is_ipv6(ip) else f"{ip}:{port}"
@@ -396,7 +396,7 @@ class SGLangRollout(BaseRollout):
         # supporting adding any sampling params from the config file
         for k in self.config.keys():
             if hasattr(SamplingParams(), str(k)):
-                kwargs[k] = self.config.get(k)  # type: ignore
+                kwargs[k] = self.config.get(k)
         self.sampling_params = kwargs
 
     def _initialize_tools(self, config, tokenizer):
@@ -442,9 +442,9 @@ class SGLangRollout(BaseRollout):
 
                 if module_name not in sys.modules:
                     spec = importlib.util.find_spec(module_name)
-                    module = importlib.util.module_from_spec(spec)  # type: ignore
+                    module = importlib.util.module_from_spec(spec)
                     sys.modules[module_name] = module
-                    spec.loader.exec_module(module)  # type: ignore
+                    spec.loader.exec_module(module)
                 else:
                     module = sys.modules[module_name]
 
@@ -643,12 +643,12 @@ class SGLangRollout(BaseRollout):
             if self._tp_rank == 0:
                 loop = asyncio.get_event_loop()
                 output = loop.run_until_complete(
-                    self._engine.async_generate(  # type: ignore
+                    self._engine.async_generate(
                         prompt=None,  # because we have already convert it to prompt token id
                         sampling_params=self.sampling_params,
                         return_logprob=True,
                         input_ids=idx_list,
-                        image_data=image_list,  # type: ignore
+                        image_data=image_list,
                     )
                 )
             else:
@@ -659,14 +659,14 @@ class SGLangRollout(BaseRollout):
             [output] = broadcast_pyobj(
                 data=[output],
                 rank=self._rank,
-                dist_group=self._device_mesh_cpu["tp"].get_group(),  # type: ignore
-                src=self._device_mesh_cpu["tp"].mesh[0].item(),  # type: ignore
+                dist_group=self._device_mesh_cpu["tp"].get_group(),
+                src=self._device_mesh_cpu["tp"].mesh[0].item(),
                 force_cpu_device=False,
             )
             out = _post_process_outputs(self.tokenizer, output)
 
             response = out[0].to(idx.device)
-            rollout_log_probs = out[1].to(idx.device)  # type: ignore
+            rollout_log_probs = out[1].to(idx.device)
 
             if response.shape[1] < self.config.response_length:
                 response = pad_sequence_to_length(response, self.config.response_length, self.pad_token_id)
@@ -680,7 +680,7 @@ class SGLangRollout(BaseRollout):
                 batch_size = batch_size * self.sampling_params["n"]
                 _non_tensor_batch = {}
                 for key, val in non_tensor_batch.items():
-                    _non_tensor_batch[key] = np.repeat(val, self.sampling_params["n"], axis=0)  # type: ignore
+                    _non_tensor_batch[key] = np.repeat(val, self.sampling_params["n"], axis=0)
             else:
                 _non_tensor_batch = non_tensor_batch
             seq = torch.cat([idx, response], dim=-1)
@@ -786,7 +786,7 @@ class SGLangRollout(BaseRollout):
                         for tool_call in tool_calls:
                             function, has_decode_error = OpenAIFunctionCallSchema.from_openai_function_parsed_schema(
                                 OpenAIFunctionParsedSchema(
-                                    name=tool_call.name,  # type: ignore
+                                    name=tool_call.name,
                                     arguments=tool_call.parameters,
                                 )
                             )
@@ -825,7 +825,7 @@ class SGLangRollout(BaseRollout):
             tool_reward_tasks.append(calc_reward_and_release_fn(name, tool))
         tool_reward_scores = await asyncio.gather(*tool_reward_tasks)
         tool_reward_scores = dict(tool_reward_scores)
-        _req.finalize(self.tokenizer, tool_reward_scores, finish_reason_type)  # type: ignore
+        _req.finalize(self.tokenizer, tool_reward_scores, finish_reason_type)
 
         return _req
 
@@ -862,14 +862,14 @@ class SGLangRollout(BaseRollout):
             kwargs["n"] = 1
         # users can customize different sampling_params at different run
         with self.update_sampling_params(**kwargs):
-            output = await self._engine.async_generate(  # type: ignore
+            output = await self._engine.async_generate(
                 input_ids=generation_prompt_ids,
                 sampling_params=self.sampling_params,
                 return_logprob=False,
             )
-        return output  # type: ignore
+        return output
 
-    async def _handle_pending_state(self, _req: AsyncRolloutRequest) -> AsyncRolloutRequest:  # type: ignore
+    async def _handle_pending_state(self, _req: AsyncRolloutRequest) -> AsyncRolloutRequest:
         if _req.tool_schemas is not None:
             tool_creation_coroutines = []
             for tool_schema in _req.tool_schemas:
@@ -914,8 +914,8 @@ class SGLangRollout(BaseRollout):
         [sorted_output_req_list] = broadcast_pyobj(
             data=[sorted_output_req_list],
             rank=self._rank,
-            dist_group=self._device_mesh_cpu["tp"].get_group(),  # type: ignore
-            src=self._device_mesh_cpu["tp"].mesh[0].item(),  # type: ignore
+            dist_group=self._device_mesh_cpu["tp"].get_group(),
+            src=self._device_mesh_cpu["tp"].mesh[0].item(),
             force_cpu_device=False,
         )
         # Construct the batch data
@@ -1040,7 +1040,7 @@ class SGLangRollout(BaseRollout):
                     _tools_kwargs = {}
                     _tool_schemas = None
 
-                req = AsyncRolloutRequest(  # type: ignore
+                req = AsyncRolloutRequest(
                     batch_data_id=data_idx,
                     rollout_offset=rollout_offset,
                     request_id=str(uuid4()),
@@ -1060,7 +1060,7 @@ class SGLangRollout(BaseRollout):
                     max_model_len=min(self.config.max_model_len, self.config.prompt_length + self.config.response_length),
                     use_inference_chat_template=self.config.multi_turn.use_inference_chat_template,
                     enable_tokenization_sanity_check=self.config.multi_turn.enable_tokenization_sanity_check,
-                    tokenizer=self.tokenizer,  # type: ignore
+                    tokenizer=self.tokenizer,
                 )
 
                 error_message = f"Request {req.request_id} has mismatched lengths: input_ids={len(req.input_ids)}, attention_mask={len(req.attention_mask)}, position_ids={len(req.position_ids)}, loss_mask={len(req.loss_mask)}"
@@ -1078,11 +1078,11 @@ class SGLangRollout(BaseRollout):
         _tool_schemas = []
         _tools_kwargs = {}
 
-        req = AsyncRolloutRequest(  # type: ignore
+        req = AsyncRolloutRequest(
             request_id=str(uuid4()),
             state=AsyncRolloutRequestStateEnum.PENDING,
             messages=[Message.model_validate(msg) for msg in json_request["messages"]],
-            tools=_tool_schemas,  # type: ignore
+            tools=_tool_schemas,
             tools_kwargs=_tools_kwargs,
             input_ids=_input_ids,
             prompt_ids=_input_ids,
@@ -1126,7 +1126,7 @@ class SGLangRollout(BaseRollout):
             id = content["meta_info"]["id"]
 
         return {
-            "id": "chatcmpl-" + id,  # type: ignore
+            "id": "chatcmpl-" + id,
             "object": "chat.completion",
             "created": int(time.time()),
             "model": json_request.get("model", "sglang_model"),
@@ -1138,12 +1138,12 @@ class SGLangRollout(BaseRollout):
     async def wake_up(self):
         if not self.is_sleep:
             return
-        await self.sharding_manager.wake_up()  # pylint: disable=C2801  # type: ignore
+        await self.sharding_manager.wake_up()  # pylint: disable=C2801
         self.is_sleep = False
 
     # this function is left for uniform train-inference resharding
     async def sleep(self):
         if self.is_sleep:
             return
-        await self.sharding_manager.sleep()  # type: ignore
+        await self.sharding_manager.sleep()
         self.is_sleep = True

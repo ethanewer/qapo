@@ -41,26 +41,26 @@ class PrecisionType:
 
     @staticmethod
     def supported_type(precision: Union[str, int]) -> bool:
-        return any(x.value == precision for x in PrecisionType.__members__.values())  # type: ignore
+        return any(x == precision for x in PrecisionType)
 
     @staticmethod
     def supported_types() -> list[str]:
-        return [x.value for x in PrecisionType.__members__.values()]  # type: ignore
+        return [x.value for x in PrecisionType]
 
     @staticmethod
-    def is_fp16(precision: Union[str, int, torch.dtype]) -> bool:
+    def is_fp16(precision):
         return precision in HALF_LIST
 
     @staticmethod
-    def is_fp32(precision: Union[str, int, torch.dtype]) -> bool:
+    def is_fp32(precision):
         return precision in FLOAT_LIST
 
     @staticmethod
-    def is_bf16(precision: Union[str, int, torch.dtype]) -> bool:
+    def is_bf16(precision):
         return precision in BFLOAT_LIST
 
     @staticmethod
-    def to_dtype(precision: Union[str, int, torch.dtype]) -> torch.dtype:
+    def to_dtype(precision):
         if precision in HALF_LIST:
             return torch.float16
         elif precision in FLOAT_LIST:
@@ -71,7 +71,7 @@ class PrecisionType:
             raise RuntimeError(f"unexpected precision: {precision}")
 
     @staticmethod
-    def to_str(precision: torch.dtype) -> str:
+    def to_str(precision):
         if precision == torch.float16:
             return "fp16"
         elif precision == torch.float32:

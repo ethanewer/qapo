@@ -19,7 +19,7 @@ import argparse
 import os
 from functools import partial
 
-from datasets import concatenate_datasets, load_dataset  # type: ignore
+from datasets import concatenate_datasets, load_dataset
 
 from verl.utils.hdfs_io import copy, makedirs
 
@@ -44,7 +44,7 @@ def build_aime2024_dataset():
     print(f"Loading the {data_source} dataset from huggingface...", flush=True)
     dataset = load_dataset(data_source, split="train")
     map_fn = partial(example_map_fn, process_fn=process_aime2024, data_source=data_source, ability="English", split="test")
-    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names)  # type: ignore
+    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names)
     return dataset
 
 
@@ -67,7 +67,7 @@ def build_gpqa_dimond_dataset():
 
     dataset = load_dataset(data_source, "gpqa_diamond", split="train")
     map_fn = partial(example_map_fn, process_fn=process_gpqa_diamond, data_source=data_source, ability="Math", split="test")
-    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names)  # type: ignore
+    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names)
     return dataset
 
 
@@ -80,13 +80,13 @@ def build_cnmo2024_dataset():
 
     dataset_en = load_dataset(data_source, "v202412_CNMO_en", split="test")
     map_fn_en = partial(example_map_fn, process_fn=process_cnmo2024, data_source="opencompass/cnmo2024_en", ability="Math", split="test")
-    dataset_en = dataset_en.map(map_fn_en, with_indices=True, remove_columns=dataset_en.column_names)  # type: ignore
+    dataset_en = dataset_en.map(map_fn_en, with_indices=True, remove_columns=dataset_en.column_names)
 
     dataset_zh = load_dataset(data_source, "v202412_CNMO_cn", split="test")
     map_fn_zh = partial(example_map_fn, process_fn=process_cnmo2024, data_source="opencompass/cnmo2024_zh", ability="Math", split="test")
-    dataset_zh = dataset_zh.map(map_fn_zh, with_indices=True, remove_columns=dataset_zh.column_names)  # type: ignore
+    dataset_zh = dataset_zh.map(map_fn_zh, with_indices=True, remove_columns=dataset_zh.column_names)
 
-    dataset = concatenate_datasets([dataset_en, dataset_zh])  # type: ignore
+    dataset = concatenate_datasets([dataset_en, dataset_zh])
     return dataset
 
 
@@ -133,7 +133,7 @@ def build_livecodebench_dataset():
     dataset = dataset.filter(lambda line: "2024-08-00T00:00:00" <= line["contest_date"] < "2025-01-00T00:00:00")
     map_fn = partial(example_map_fn, process_fn=process_livecodebench, data_source=data_source, ability="Code", split="test")
 
-    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names, num_proc=8)  # type: ignore
+    dataset = dataset.map(map_fn, with_indices=True, remove_columns=dataset.column_names, num_proc=8)
     return dataset
 
 

@@ -17,7 +17,7 @@ into two parts:
 
    import re
    import os
-   import datasets  # type: ignore
+   import datasets
 
    from verl.utils.hdfs_io import copy, makedirs
    import argparse

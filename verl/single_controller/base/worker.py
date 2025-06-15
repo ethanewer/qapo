@@ -47,7 +47,7 @@ class WorkerHelper:
             if os.getenv("WG_BACKEND", None) == "ray":
                 import ray
 
-                return ray._private.services.get_node_ip_address()  # type: ignore
+                return ray._private.services.get_node_ip_address()
             else:
                 raise NotImplementedError("WG_BACKEND now just support ray mode.")
 
@@ -96,7 +96,7 @@ class Worker(WorkerHelper):
 
         # when decorator @ray.remote applies, __new__ will be called while we don't want to apply _configure_before_init
         if None not in [rank, worker_group_prefix] and "ActorClass(" not in cls.__name__:
-            instance._configure_before_init(f"{worker_group_prefix}_register_center", int(rank))  # type: ignore
+            instance._configure_before_init(f"{worker_group_prefix}_register_center", int(rank))
 
         return instance
 
@@ -125,10 +125,10 @@ class Worker(WorkerHelper):
 
             os.environ.update(rank_zero_info)
         else:
-            self.register_center = ray.get_actor(register_center_name)  # type: ignore
+            self.register_center = ray.get_actor(register_center_name)
 
         # set worker info for node affinity scheduling
-        ray.get(self.register_center.set_worker_info.remote(rank, ray.get_runtime_context().get_node_id()))  # type: ignore
+        ray.get(self.register_center.set_worker_info.remote(rank, ray.get_runtime_context().get_node_id()))
 
     @classmethod
     def env_keys(cls):
@@ -228,8 +228,8 @@ class Worker(WorkerHelper):
             # RAY_EXPERIMENTAL_NOSET_*_VISIBLE_DEVICES is set,
             # so we need to set local rank when the flag is set.
             local_rank = os.environ.get("RAY_LOCAL_RANK")
-            os.environ["LOCAL_RANK"] = local_rank  # type: ignore
-            torch.cuda.set_device(int(local_rank))  # type: ignore
+            os.environ["LOCAL_RANK"] = local_rank
+            torch.cuda.set_device(int(local_rank))
 
     def _configure_with_store(self, store: Dict):
         """
@@ -243,11 +243,11 @@ class Worker(WorkerHelper):
             if val is not None:
                 # print(f"set {key} to {val}")
                 os.environ[key] = str(val)
-        os.environ["REDIS_STORE_SERVER_HOST"] = str(self._master_addr).replace("[", "").replace("]", "") if self._master_addr else ""  # type: ignore
+        os.environ["REDIS_STORE_SERVER_HOST"] = str(self._master_addr).replace("[", "").replace("]", "") if self._master_addr else ""
 
     def get_master_addr_port(self):
         """Get the master address and port for distributed communication."""
-        return self._master_addr, self._master_port  # type: ignore
+        return self._master_addr, self._master_port
 
     def get_cuda_visible_devices(self):
         """Get the CUDA visible devices configuration."""
@@ -266,7 +266,7 @@ class Worker(WorkerHelper):
         """Get the rank of this worker in the distributed setup."""
         return self._rank
 
-    @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO_WITH_FUNC)  # type: ignore
+    @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO_WITH_FUNC)
     def execute_with_func_generator(self, func, *args, **kwargs):
         """Execute a function with function generator dispatch mode.
 
@@ -281,7 +281,7 @@ class Worker(WorkerHelper):
         ret_proto = func(self, *args, **kwargs)
         return ret_proto
 
-    @register(dispatch_mode=Dispatch.ALL_TO_ALL, execute_mode=Execute.RANK_ZERO)  # type: ignore
+    @register(dispatch_mode=Dispatch.ALL_TO_ALL, execute_mode=Execute.RANK_ZERO)
     def execute_func_rank_zero(self, func, *args, **kwargs):
         """Execute a function in rank zero execution mode.
 

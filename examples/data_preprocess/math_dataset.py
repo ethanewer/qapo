@@ -18,7 +18,7 @@ Preprocess the MATH-lighteval dataset to parquet format
 import argparse
 import os
 
-import datasets  # type: ignore
+import datasets
 
 from verl.utils.hdfs_io import copy, makedirs
 from verl.utils.reward_score.math import last_boxed_only_string, remove_boxed
@@ -41,8 +41,8 @@ if __name__ == "__main__":
     print(f"Loading the {data_source} dataset from huggingface...", flush=True)
     dataset = datasets.load_dataset(data_source, trust_remote_code=True)
 
-    train_dataset = dataset["train"]  # type: ignore
-    test_dataset = dataset["test"]  # type: ignore
+    train_dataset = dataset["train"]
+    test_dataset = dataset["test"]
 
     instruction_following = "Let's think step by step and output the final answer within \\boxed{}."
 
@@ -66,8 +66,8 @@ if __name__ == "__main__":
 
         return process_fn
 
-    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)  # type: ignore
-    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True)  # type: ignore
+    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)
+    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True)
 
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir

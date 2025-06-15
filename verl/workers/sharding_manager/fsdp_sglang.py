@@ -57,7 +57,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
         inference_engine: Engine,
         model_config,
         full_params: bool = False,
-        device_mesh: DeviceMesh = None,  # type: ignore
+        device_mesh: DeviceMesh = None,
         offload_param: bool = False,
     ):
         self.module = module
@@ -103,7 +103,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
             device = torch.cuda.current_device()  # used when fsdp2 set cpu_offload_policy
             params = {k: v.to(device, non_blocking=True) if fsdp_version(self.module) == 2 else v for k, v in params.items()}
-            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))  # type: ignore
+            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))
             # Copy, not share memory
             loop = asyncio.get_event_loop()
             loop.run_until_complete(self.update_weights(params))
@@ -118,7 +118,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
             # important: need to manually set the random states of each tp to be identical.
             if self.device_mesh is not None:
                 self.torch_random_states = torch.cuda.get_rng_state()
-                torch.cuda.set_rng_state(self.gen_random_states)  # type: ignore
+                torch.cuda.set_rng_state(self.gen_random_states)
 
     @GPUMemoryLogger(role="FSDPSGLangShardingManager exit", logger=logger)
     def __exit__(self, exc_type, exc_value, traceback):
@@ -139,7 +139,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
 
     async def update_weights(self, params):
         if self.device_mesh["infer_tp"].get_local_rank() == 0:
-            await self.inference_engine.resume_memory_occupation()  # type: ignore
+            await self.inference_engine.resume_memory_occupation()
 
         # Most naive implementation, can optimize a lot if it is bottleneck from sglang Engine weight update
         named_tensors = [(k, v) for k, v in params.items()]
@@ -159,11 +159,11 @@ class FSDPSGLangShardingManager(BaseShardingManager):
             )
 
             if self.device_mesh["infer_tp"].get_local_rank() == 0:
-                await self.inference_engine.update_weights_from_tensor(  # type: ignore
+                await self.inference_engine.update_weights_from_tensor(
                     named_tensors=[
                         (
                             name,
-                            LocalSerializedTensor(values=gathered_serialized_tensors),  # type: ignore
+                            LocalSerializedTensor(values=gathered_serialized_tensors),
                         )
                     ],
                     load_format=load_format,
@@ -172,7 +172,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
 
     async def release_memory(self):
         if self.device_mesh["infer_tp"].get_local_rank() == 0:
-            await self.inference_engine.release_memory_occupation()  # type: ignore
+            await self.inference_engine.release_memory_occupation()
 
     @GPUMemoryLogger(role="FSDPSGLangShardingManager enter", logger=logger)
     async def wake_up(self):
@@ -197,7 +197,7 @@ class FSDPSGLangShardingManager(BaseShardingManager):
         # important: need to manually set the random states of each tp to be identical.
         if self.device_mesh is not None:
             self.torch_random_states = torch.cuda.get_rng_state()
-            torch.cuda.set_rng_state(self.gen_random_states)  # type: ignore
+            torch.cuda.set_rng_state(self.gen_random_states)
 
     @GPUMemoryLogger(role="FSDPSGLangShardingManager exit", logger=logger)
     async def sleep(self):

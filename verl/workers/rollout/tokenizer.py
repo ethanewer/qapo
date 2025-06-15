@@ -91,7 +91,7 @@ class HybridEngineBaseTokenizer(ABC):
         self,
         token_ids: Union[int, List[int], np.ndarray, torch.Tensor],
         skip_special_tokens: bool = False,
-        clean_up_tokenization_spaces: bool = None,  # type: ignore
+        clean_up_tokenization_spaces: bool = None,
         **kwargs,
     ) -> str:
         """

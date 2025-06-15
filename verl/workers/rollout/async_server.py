@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Tuple, Type
 
 import fastapi
-import ray  # type: ignore
+import ray
 import uvicorn
 from omegaconf import DictConfig
 from starlette.requests import Request

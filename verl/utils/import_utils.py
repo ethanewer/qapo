@@ -18,7 +18,7 @@ We assume package availability won't change during runtime.
 
 import importlib.util
 from functools import cache
-from typing import Any, List, Optional, Sequence
+from typing import List, Optional
 
 
 @cache
@@ -57,18 +57,18 @@ def is_trl_available():
     return trl_spec is not None
 
 
-def import_external_libs(external_libs: Optional[Sequence[str] | str] = None) -> None:
+def import_external_libs(external_libs=None):
     if external_libs is None:
         return
-    if not isinstance(external_libs, list):
-        external_libs = [external_libs]  # type: ignore
+    if not isinstance(external_libs, List):
+        external_libs = [external_libs]
     import importlib
 
-    for external_lib in external_libs:  # type: ignore
+    for external_lib in external_libs:
         importlib.import_module(external_lib)
 
 
-def load_extern_type(file_path: Optional[str], type_name: Optional[str]) -> Any:
+def load_extern_type(file_path: Optional[str], type_name: Optional[str]):
     """Load a external data type based on the file path and type name"""
     import importlib.util
     import os
@@ -80,37 +80,33 @@ def load_extern_type(file_path: Optional[str], type_name: Optional[str]) -> Any:
         raise FileNotFoundError(f"Custom type file '{file_path}' not found.")
 
     spec = importlib.util.spec_from_file_location("custom_module", file_path)
-    if spec is None:  # type: ignore
-        raise RuntimeError(f"Could not load spec from '{file_path}'")
     module = importlib.util.module_from_spec(spec)
     try:
-        spec.loader.exec_module(module)  # type: ignore
+        spec.loader.exec_module(module)
     except Exception as e:
         raise RuntimeError(f"Error loading module from '{file_path}'") from e
 
-    if type_name is None:
-        raise ValueError("type_name cannot be None")
     if not hasattr(module, type_name):
         raise AttributeError(f"Custom type '{type_name}' not found in '{file_path}'.")
 
     return getattr(module, type_name)
 
 
-def _get_qualified_name(func: Any) -> str:
+def _get_qualified_name(func):
     """Get full qualified name including module and class (if any)."""
     module = func.__module__
     qualname = func.__qualname__
     return f"{module}.{qualname}"
 
-def deprecated(replacement: str = "") -> Any:
+def deprecated(replacement: str = ""):
     """Decorator to mark APIs as deprecated."""
     import functools
     import warnings
 
-    def decorator(func: Any) -> Any:
+    def decorator(func):
         qualified_name = _get_qualified_name(func)
         @functools.wraps(func)
-        def wrapped(*args: Any, **kwargs: Any) -> Any:
+        def wrapped(*args, **kwargs):
             msg = f"Warning: API '{qualified_name}' is deprecated."
             if replacement:
                 msg += f" Please use '{replacement}' instead."

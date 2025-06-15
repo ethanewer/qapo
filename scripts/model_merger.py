@@ -66,7 +66,7 @@ try:
 except ImportError:
     from torch.distributed._tensor import DTensor
 
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from verl.utils import hf_processor, hf_tokenizer
 

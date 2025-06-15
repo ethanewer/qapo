@@ -88,11 +88,11 @@ def compute_data_metrics(batch, use_critic=True):
         **(
             {
                 # values
-                "critic/values/mean": torch.mean(valid_values).detach().item(),  # type: ignore
-                "critic/values/max": torch.max(valid_values).detach().item(),  # type: ignore
-                "critic/values/min": torch.min(valid_values).detach().item(),  # type: ignore
+                "critic/values/mean": torch.mean(valid_values).detach().item(),
+                "critic/values/max": torch.max(valid_values).detach().item(),
+                "critic/values/min": torch.min(valid_values).detach().item(),
                 # vf explained var
-                "critic/vf_explained_var": (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),  # type: ignore
+                "critic/vf_explained_var": (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),
             }
             if use_critic
             else {}
@@ -148,7 +148,7 @@ class RayPRIMETrainer(RayPPOTrainer):
         tokenizer,
         role_worker_mapping: dict[Role, WorkerType],
         resource_pool_manager: ResourcePoolManager,
-        ray_worker_group_cls: RayWorkerGroup = RayWorkerGroup,  # type: ignore
+        ray_worker_group_cls: RayWorkerGroup = RayWorkerGroup,
         reward_fn=None,
         val_reward_fn=None,
     ):
@@ -244,7 +244,7 @@ class RayPRIMETrainer(RayPPOTrainer):
 
         # save dataloader
         dataloader_local_path = os.path.join(local_global_step_folder, "data.pt")
-        import dill  # type: ignore
+        import dill
 
         torch.save(self.train_dataloader, dataloader_local_path, pickle_module=dill)
 
@@ -269,7 +269,7 @@ class RayPRIMETrainer(RayPPOTrainer):
 
         # find global_step_folder
         if self.config.trainer.resume_mode == "auto":
-            if global_step_folder is None:  # type: ignore
+            if global_step_folder is None:
                 print("Training from scratch")
                 return 0
         else:
@@ -280,15 +280,15 @@ class RayPRIMETrainer(RayPPOTrainer):
                 if not os.path.isabs(global_step_folder):
                     working_dir = os.getcwd()
                     global_step_folder = os.path.join(working_dir, global_step_folder)
-        print(f"Load from checkpoint folder: {global_step_folder}")  # type: ignore
+        print(f"Load from checkpoint folder: {global_step_folder}")
         # set global step
-        self.global_steps = int(global_step_folder.split("global_step_")[-1])  # type: ignore
+        self.global_steps = int(global_step_folder.split("global_step_")[-1])
 
         print(f"Setting global step to {self.global_steps}")
-        print(f"Resuming from {global_step_folder}")  # type: ignore
+        print(f"Resuming from {global_step_folder}")
 
-        actor_path = os.path.join(global_step_folder, "actor")  # type: ignore
-        reward_path = os.path.join(global_step_folder, "reward")  # type: ignore
+        actor_path = os.path.join(global_step_folder, "actor")
+        reward_path = os.path.join(global_step_folder, "reward")
         # load actor
         self.actor_rollout_wg.load_checkpoint(actor_path, del_local_after_load=self.config.trainer.del_local_ckpt_after_load)
         # load rm
@@ -297,7 +297,7 @@ class RayPRIMETrainer(RayPPOTrainer):
 
         # load dataloader,
         # TODO: from remote not implemented yet
-        dataloader_local_path = os.path.join(global_step_folder, "data.pt")  # type: ignore
+        dataloader_local_path = os.path.join(global_step_folder, "data.pt")
         self.train_dataloader = torch.load(dataloader_local_path)
         if isinstance(self.train_dataloader.dataset, RLHFDataset):
             self.train_dataloader.dataset.resume_dataset_state()
@@ -361,7 +361,7 @@ class RayPRIMETrainer(RayPPOTrainer):
                             gen_baseline_output = self.actor_rollout_wg.generate_sequences(gen_baseline_batch)
 
                             batch = batch.union(gen_baseline_output)
-                            reward_baseline_tensor = self.reward_fn(batch)  # type: ignore
+                            reward_baseline_tensor = self.reward_fn(batch)
                             reward_baseline_tensor = reward_baseline_tensor.sum(dim=-1)
 
                             batch.pop(batch_keys=list(gen_baseline_output.batch.keys()))
@@ -388,7 +388,7 @@ class RayPRIMETrainer(RayPPOTrainer):
 
                     # verify
                     with _timer("verify", timing_raw):
-                        scores = self.reward_fn.verify(batch)  # type: ignore
+                        scores = self.reward_fn.verify(batch)
                         metrics["acc"] = statistics.mean(scores)
 
                     # filter the batch. 1/oversample_factor samples will be kept.

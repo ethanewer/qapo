@@ -44,7 +44,7 @@ from typing import Tuple, Union
 from uuid import uuid4
 
 import aiohttp
-import ray  # type: ignore
+import ray
 from omegaconf import DictConfig, OmegaConf
 from openai.types.chat.chat_completion import ChatCompletion
 from ray.util.placement_group import placement_group

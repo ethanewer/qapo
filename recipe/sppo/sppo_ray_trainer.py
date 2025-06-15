@@ -24,10 +24,10 @@ from pprint import pprint
 from typing import Optional
 
 import numpy as np
-import ray  # type: ignore
+import ray
 import torch
 from torch.utils.data import Dataset, Sampler
-from tqdm import tqdm  # type: ignore
+from tqdm import tqdm
 
 from verl import DataProto
 from verl.single_controller.ray import RayWorkerGroup

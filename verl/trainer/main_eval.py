@@ -19,11 +19,11 @@ The input is a parquet file that contains N generated sequences and (optional) t
 
 from collections import defaultdict
 
-import hydra  # type: ignore
+import hydra
 import numpy as np
 import pandas as pd
-import ray  # type: ignore
-from tqdm import tqdm  # type: ignore
+import ray
+from tqdm import tqdm
 
 from verl.trainer.ppo.reward import get_custom_reward_fn
 from verl.utils.fs import copy_to_local
@@ -38,7 +38,7 @@ def process_item(reward_fn, data_source, response_lst, reward_data):
 
 @hydra.main(config_path="config", config_name="evaluation", version_base=None)
 def main(config):
-    local_path = copy_to_local(config.data.path, use_shm=config.data.get("use_shm", False))
+    local_path = copy_to_local(config.data.path, use_shm=config.data.get('use_shm', False))
     dataset = pd.read_parquet(local_path)
     responses = dataset[config.data.response_key]
     data_sources = dataset[config.data.data_source_key]
@@ -55,7 +55,7 @@ def main(config):
     compute_score = get_custom_reward_fn(config)
 
     # Create remote tasks
-    remote_tasks = [process_item.remote(compute_score, data_sources[i], responses[i], reward_model_data[i]) for i in range(total)]  # type: ignore
+    remote_tasks = [process_item.remote(compute_score, data_sources[i], responses[i], reward_model_data[i]) for i in range(total)]
 
     # Process results as they come in
     with tqdm(total=total) as pbar:
@@ -75,4 +75,4 @@ def main(config):
 
 
 if __name__ == "__main__":
-    main()  # type: ignore
+    main()

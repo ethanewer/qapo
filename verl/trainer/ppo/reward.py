@@ -16,7 +16,7 @@ import multiprocessing
 import os
 from functools import partial
 
-import ray  # type: ignore
+import ray
 
 from verl import DataProto
 from verl.utils.reward_score import default_compute_score
@@ -35,19 +35,19 @@ def get_custom_reward_fn(config):
         raise FileNotFoundError(f"Reward function file '{file_path}' not found.")
 
     spec = importlib.util.spec_from_file_location("custom_module", file_path)
-    module = importlib.util.module_from_spec(spec)  # type: ignore
+    module = importlib.util.module_from_spec(spec)
     try:
         sys.modules["custom_module"] = module
-        spec.loader.exec_module(module)  # type: ignore
+        spec.loader.exec_module(module)
     except Exception as e:
         raise RuntimeError(f"Error loading module from '{file_path}': {e}") from e
 
     function_name = reward_fn_config.get("name")
-    if not hasattr(module, function_name):  # type: ignore
+    if not hasattr(module, function_name):
         raise AttributeError(f"Reward function '{function_name}' not found in '{file_path}'.")
 
     print(f"using customized reward function '{function_name}' from '{file_path}'")
-    raw_fn = getattr(module, function_name)  # type: ignore
+    raw_fn = getattr(module, function_name)
 
     reward_kwargs = dict(reward_fn_config.get("reward_kwargs", {}))
 

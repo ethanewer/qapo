@@ -15,12 +15,13 @@
 Note that we don't combine the main with ray_trainer as ray_trainer is used by other main.
 """
 
-import hydra  # type: ignore
-import ray  # type: ignore
+
+import hydra
+import ray
 
 from verl.trainer.ppo.reward import get_custom_reward_fn
 
-from .dapo_ray_trainer import RayDAPOTrainer  # type: ignore
+from .dapo_ray_trainer import RayDAPOTrainer
 
 
 @hydra.main(config_path="config", config_name="dapo_trainer", version_base=None)
@@ -36,7 +37,7 @@ def run_ppo(config) -> None:
             num_cpus=config.ray_init.num_cpus,
         )
 
-    runner = TaskRunner.remote()  # type: ignore
+    runner = TaskRunner.remote()
     ray.get(runner.run.remote(config))
 
 
@@ -151,7 +152,7 @@ class TaskRunner:
             processor=processor,
             role_worker_mapping=role_worker_mapping,
             resource_pool_manager=resource_pool_manager,
-            ray_worker_group_cls=ray_worker_group_cls,  # type: ignore
+            ray_worker_group_cls=ray_worker_group_cls,
             reward_fn=reward_fn,
             val_reward_fn=val_reward_fn,
             device_name=config.trainer.device,
@@ -161,4 +162,4 @@ class TaskRunner:
 
 
 if __name__ == "__main__":
-    main()  # type: ignore
+    main()

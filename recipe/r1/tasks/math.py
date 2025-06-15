@@ -14,16 +14,16 @@
 import contextlib
 
 try:
-    from math_verify.metric import math_metric  # type: ignore
-    from math_verify.parser import ExprExtractionConfig, LatexExtractionConfig  # type: ignore
+    from math_verify.metric import math_metric
+    from math_verify.parser import ExprExtractionConfig, LatexExtractionConfig
 except ImportError:
     print("To use Math-Verify, please install it first by running `pip install math-verify`.")
 
 
 def compute_score(model_output: str, ground_truth: str) -> bool:
-    verify_func = math_metric(  # type: ignore
-        gold_extraction_target=(LatexExtractionConfig(),),  # type: ignore
-        pred_extraction_target=(ExprExtractionConfig(), LatexExtractionConfig()),  # type: ignore
+    verify_func = math_metric(
+        gold_extraction_target=(LatexExtractionConfig(),),
+        pred_extraction_target=(ExprExtractionConfig(), LatexExtractionConfig()),
     )
     ret_score = 0.0
 
@@ -32,4 +32,4 @@ def compute_score(model_output: str, ground_truth: str) -> bool:
     with contextlib.suppress(Exception):
         ret_score, _ = verify_func([ground_truth_boxed], [model_output])
 
-    return ret_score  # type: ignore
+    return ret_score

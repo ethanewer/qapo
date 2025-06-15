@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 
 import fastapi
 import numpy as np
-import ray  # type: ignore
+import ray
 import uvicorn
 from datasets import load_dataset
 from omegaconf import DictConfig, OmegaConf

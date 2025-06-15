@@ -19,7 +19,7 @@ import argparse
 import os
 import re
 
-import datasets  # type: ignore
+import datasets
 
 from verl.utils.hdfs_io import copy, makedirs
 
@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     dataset = datasets.load_dataset(data_source, "main")
 
-    train_dataset = dataset["train"]  # type: ignore
-    test_dataset = dataset["test"]  # type: ignore
+    train_dataset = dataset["train"]
+    test_dataset = dataset["test"]
 
     instruction_following = 'Let\'s think step by step and output the final answer after "####".'
 
@@ -78,8 +78,8 @@ if __name__ == "__main__":
 
         return process_fn
 
-    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)  # type: ignore
-    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True)  # type: ignore
+    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)
+    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True)
 
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir

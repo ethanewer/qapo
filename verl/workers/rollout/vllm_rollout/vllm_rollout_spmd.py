@@ -37,10 +37,10 @@ import torch
 import torch.distributed
 from omegaconf import DictConfig, OmegaConf
 from tensordict import TensorDict
-from vllm import LLM, SamplingParams  # type: ignore
-from vllm.distributed import parallel_state as vllm_ps  # type: ignore
-from vllm.lora.request import LoRARequest  # type: ignore
-from vllm.worker.worker_base import WorkerWrapperBase  # type: ignore
+from vllm import LLM, SamplingParams
+from vllm.distributed import parallel_state as vllm_ps
+from vllm.lora.request import LoRARequest
+from vllm.worker.worker_base import WorkerWrapperBase
 
 from verl import DataProto
 from verl.third_party.vllm import vllm_version
@@ -71,7 +71,7 @@ def _repeat_interleave(value: Union[torch.Tensor, np.ndarray], repeats: int) -> 
     if isinstance(value, torch.Tensor):
         return value.repeat_interleave(repeats, dim=0)
     else:
-        return np.repeat(value, repeats, axis=0)  # type: ignore
+        return np.repeat(value, repeats, axis=0)
 
 
 class vLLMRollout(BaseRollout):
@@ -142,7 +142,7 @@ class vLLMRollout(BaseRollout):
         # - `None` means not setting it, so we pop it, and leave it to vLLM default value
         #    (which can vary across different vLLM versions);
         # - Otherwise it's the desired value we want to explicitly set.
-        engine_kwargs = {key: val for key, val in engine_kwargs.items() if val is not None}  # type: ignore
+        engine_kwargs = {key: val for key, val in engine_kwargs.items() if val is not None}
         if config.get("limit_images", None):  # support for multi-image data
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
@@ -166,7 +166,7 @@ class vLLMRollout(BaseRollout):
             trust_remote_code=trust_remote_code,
             seed=config.get("seed", 0),
             **lora_kwargs,
-            **engine_kwargs,  # type: ignore
+            **engine_kwargs,
         )
 
         # Offload vllm model to reduce peak memory usage
@@ -185,7 +185,7 @@ class vLLMRollout(BaseRollout):
         # supporting adding any sampling params from the config file
         for k in config.keys():
             if hasattr(SamplingParams(), str(k)):
-                kwargs[k] = config.get(k)  # type: ignore
+                kwargs[k] = config.get(k)
 
         print(f"kwargs: {kwargs}")
         self.sampling_params = SamplingParams(**kwargs)
@@ -317,26 +317,26 @@ class vLLMRollout(BaseRollout):
                 if "tools_kwargs" in non_tensor_batch.keys():
                     non_tensor_batch["tools_kwargs"] = _repeat_interleave(non_tensor_batch["tools_kwargs"], self.sampling_params.n)
 
-            seq = torch.cat([idx, response], dim=-1)  # type: ignore
+            seq = torch.cat([idx, response], dim=-1)
 
         response_length = response.size(1)
-        delta_position_id = torch.arange(1, response_length + 1, device=position_ids.device)  # type: ignore
+        delta_position_id = torch.arange(1, response_length + 1, device=position_ids.device)
         delta_position_id = delta_position_id.unsqueeze(0).expand(batch_size, -1)
-        if position_ids.dim() == 3:  # qwen2vl mrope  # type: ignore
+        if position_ids.dim() == 3:  # qwen2vl mrope
             delta_position_id = delta_position_id.view(batch_size, 1, -1).expand(batch_size, 3, -1)
 
         # TODO(sgm): fix position_ids on right_pad
         # prompt: left pad + response: right pad
         # attention_mask: [0,0,0,0,1,1,1,1, | 1,1,1,0,0,0,0,0]
         # position_ids:   [0,0,0,0,0,1,2,3, | 4,5,6,7,8,9,10,11]
-        response_position_ids = position_ids[..., -1:] + delta_position_id  # type: ignore
-        position_ids = torch.cat([position_ids, response_position_ids], dim=-1)  # type: ignore
-        response_attention_mask = get_response_mask(response_id=response, eos_token=eos_token_id, dtype=attention_mask.dtype)  # type: ignore
-        attention_mask = torch.cat((attention_mask, response_attention_mask), dim=-1)  # type: ignore
+        response_position_ids = position_ids[..., -1:] + delta_position_id
+        position_ids = torch.cat([position_ids, response_position_ids], dim=-1)
+        response_attention_mask = get_response_mask(response_id=response, eos_token=eos_token_id, dtype=attention_mask.dtype)
+        attention_mask = torch.cat((attention_mask, response_attention_mask), dim=-1)
 
         # all the tp ranks should contain the same data here. data in all ranks are valid
         batch = TensorDict(
-            {  # type: ignore
+            {
                 "prompts": idx,
                 "responses": response,
                 "input_ids": seq,  # here input_ids become the whole sentences
@@ -385,21 +385,21 @@ class vLLMAsyncRollout:
         self.inference_engine.load_model(*args, **kwargs)
 
         # inference engine is initialized now, update sharding manager
-        self.sharding_manager.inference_engine = self.inference_engine  # type: ignore
-        self.sharding_manager.model_runner = self.inference_engine.worker.model_runner  # type: ignore
+        self.sharding_manager.inference_engine = self.inference_engine
+        self.sharding_manager.model_runner = self.inference_engine.worker.model_runner
 
     def sleep(self, *args, **kwargs):
         """Offload model weights and discard kv cache."""
         if self.is_sleep:
             return
-        self.sharding_manager.__exit__(None, None, None)  # type: ignore
+        self.sharding_manager.__exit__(None, None, None)
         self.is_sleep = True
 
     def wake_up(self, *args, **kwargs):
         """Load model weights and build kv cache."""
         if not self.is_sleep:
             return
-        self.sharding_manager.__enter__()  # pylint: disable=C2801  # type: ignore
+        self.sharding_manager.__enter__()  # pylint: disable=C2801
         self.is_sleep = False
 
     def execute_method(self, method: Union[str, bytes], *args, **kwargs):

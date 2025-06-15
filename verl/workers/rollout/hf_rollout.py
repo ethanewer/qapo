@@ -25,7 +25,7 @@ import torch.distributed
 from tensordict import TensorDict
 from torch import nn
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from transformers import GenerationConfig  # type: ignore
+from transformers import GenerationConfig
 
 from verl import DataProto
 from verl.utils.device import get_torch_device
@@ -107,7 +107,7 @@ class HFRollout(BaseRollout):
             # recurse need to set to False according to https://github.com/pytorch/pytorch/issues/100069
             param_ctx = FSDP.summon_full_params(self.module, writeback=False, recurse=False)
         with param_ctx, torch.autocast(device_type="cuda", dtype=torch.bfloat16):
-            output = self.module.generate(  # type: ignore
+            output = self.module.generate(
                 input_ids=idx,
                 attention_mask=attention_mask,
                 position_ids=position_ids,

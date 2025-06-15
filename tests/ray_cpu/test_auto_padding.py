@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import numpy as np
-import ray  # type: ignore
+import ray
 import torch
 
 from verl import DataProto

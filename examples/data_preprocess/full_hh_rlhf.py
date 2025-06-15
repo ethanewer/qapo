@@ -20,9 +20,9 @@
 import argparse
 import os
 
-import pandas as pd  # type: ignore
-from datasets import load_dataset  # type: ignore
-from tqdm.auto import tqdm  # type: ignore
+import pandas as pd
+from datasets import load_dataset
+from tqdm.auto import tqdm
 
 from verl.utils.fs import copy, makedirs
 
@@ -30,14 +30,14 @@ from verl.utils.fs import copy, makedirs
 def generate_sft_dataset(target_hdfs_path_dir, local_dir="~/data/full_hh_rlh/sft"):
     dataset = load_dataset("Dahoas/full-hh-rlhf")
     output = {"prompt": [], "response": []}
-    for data in tqdm(dataset["train"]):  # type: ignore
+    for data in tqdm(dataset["train"]):
         # add chosen
-        output["prompt"].append(data["prompt"])  # type: ignore
-        output["response"].append(data["chosen"])  # type: ignore
+        output["prompt"].append(data["prompt"])
+        output["response"].append(data["chosen"])
 
         # add rejection
-        output["prompt"].append(data["prompt"])  # type: ignore
-        output["response"].append(data["rejected"])  # type: ignore
+        output["prompt"].append(data["prompt"])
+        output["response"].append(data["rejected"])
 
     df = pd.DataFrame(output)
 
@@ -85,7 +85,7 @@ def generate_rm_dataset(target_hdfs_path_dir, local_dir="~/data/full_hh_rlh/rm")
 
 def generate_rl_dataset(target_hdfs_path_dir, local_dir="~/data/full_hh_rlhf/rl"):
     dataset = load_dataset("Dahoas/full-hh-rlhf")
-    train_dataset = dataset["train"]  # type: ignore
+    train_dataset = dataset["train"]
 
     data_source = "Dahoas/full-hh-rlhf"
 
@@ -109,7 +109,7 @@ def generate_rl_dataset(target_hdfs_path_dir, local_dir="~/data/full_hh_rlhf/rl"
 
         return process_fn
 
-    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)  # type: ignore
+    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)
     local_dir = os.path.expanduser(local_dir)
     local_path = os.path.join(local_dir, "train.parquet")
     train_dataset.to_parquet(local_path)

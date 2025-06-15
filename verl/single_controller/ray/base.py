@@ -20,7 +20,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 from unittest.mock import patch
 
-import ray  # type: ignore
+import ray
 from ray.experimental.state.api import get_actor
 from ray.util import list_named_actors
 from ray.util.placement_group import PlacementGroup, placement_group

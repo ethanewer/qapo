@@ -156,7 +156,7 @@ def dispatch_megatron_compute(worker_group, *args, **kwargs):
     assert isinstance(worker_group, MegatronWorkerGroup), f"worker_group must be MegatronWorkerGroup, Got {type(worker_group)}"
 
     # ray put all the args in advance to avoid duplicate serialization cost
-    import ray  # type: ignore
+    import ray
 
     args = [[ray.put(dp_arg) for dp_arg in arg] for arg in args]
     kwargs = {k: [ray.put(dp_v) for dp_v in v] for k, v in kwargs.items()}
@@ -211,7 +211,7 @@ def dispatch_megatron_compute_data_proto(worker_group, *args, **kwargs):
 
 
 def _concat_data_proto_or_future(output: List):
-    import ray  # type: ignore
+    import ray
 
     from verl.protocol import DataProto, DataProtoFuture
 
@@ -233,7 +233,7 @@ def collect_megatron_compute_data_proto(worker_group, output):
     """
     Each output must be a DataProto. We concat the dim=0 of output
     """
-    import ray  # type: ignore
+    import ray
 
     from verl.protocol import DataProto
 
@@ -391,7 +391,7 @@ def dispatch_dp_compute_data_proto_with_func(worker_group, *args, **kwargs):
 
 
 def collect_dp_compute_data_proto(worker_group, output):
-    import ray  # type: ignore
+    import ray
 
     from verl.protocol import DataProto
 

@@ -18,12 +18,12 @@ import os
 import warnings
 
 import torch
-from megatron.core import dist_checkpointing  # type: ignore
-from megatron.core import parallel_state as mpu  # type: ignore
-from megatron.core.dist_checkpointing.serialization import StrictHandling  # type: ignore
-from megatron.core.models.gpt.gpt_model import ModelType  # type: ignore
-from megatron.core.tensor_parallel.random import model_parallel_cuda_manual_seed  # type: ignore
-from transformers import AutoConfig  # type: ignore
+from megatron.core import dist_checkpointing
+from megatron.core import parallel_state as mpu
+from megatron.core.dist_checkpointing.serialization import StrictHandling
+from megatron.core.models.gpt.gpt_model import ModelType
+from megatron.core.tensor_parallel.random import model_parallel_cuda_manual_seed
+from transformers import AutoConfig
 
 from verl.models.mcore import hf_to_mcore_config
 from verl.utils.megatron_utils import get_model
@@ -350,7 +350,7 @@ def convert_hf_to_mcore(hf_model_path, output_path, use_cpu_initialization=False
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-    from transformers import AutoModelForCausalLM, AutoModelForImageTextToText  # type: ignore
+    from transformers import AutoModelForCausalLM, AutoModelForImageTextToText
 
     # init hf model
     if "Qwen2_5_VLForConditionalGeneration" in hf_config.architectures:

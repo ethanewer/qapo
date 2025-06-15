@@ -20,7 +20,7 @@ import argparse
 import os
 import re
 
-import datasets  # type: ignore
+import datasets
 
 from verl.utils.hdfs_io import copy, makedirs
 
@@ -45,9 +45,9 @@ if __name__ == "__main__":
 
     dataset = datasets.load_dataset(data_source, trust_remote_code=True)
 
-    train_dataset = dataset["train"]  # type: ignore
-    val_dataset = dataset["validation"]  # type: ignore
-    test_dataset = dataset["test"]  # type: ignore
+    train_dataset = dataset["train"]
+    val_dataset = dataset["validation"]
+    test_dataset = dataset["test"]
 
     instruction = "Please complete the following sentence.\n"
 
@@ -75,9 +75,9 @@ if __name__ == "__main__":
         return process_fn
 
     # filter data that doesn't have a label
-    train_dataset = train_dataset.filter(lambda x: len(x["label"]) > 0)  # type: ignore
-    val_dataset = val_dataset.filter(lambda x: len(x["label"]) > 0)  # type: ignore
-    test_dataset = test_dataset.filter(lambda x: len(x["label"]) > 0)  # type: ignore
+    train_dataset = train_dataset.filter(lambda x: len(x["label"]) > 0)
+    val_dataset = val_dataset.filter(lambda x: len(x["label"]) > 0)
+    test_dataset = test_dataset.filter(lambda x: len(x["label"]) > 0)
 
     train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)
     val_dataset = val_dataset.map(function=make_map_fn("validation"), with_indices=True)

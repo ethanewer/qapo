@@ -36,18 +36,18 @@ import torch.distributed
 from omegaconf import DictConfig, OmegaConf
 from tensordict import TensorDict
 from torch import nn
-from vllm import SamplingParams  # type: ignore
+from vllm import SamplingParams
 
 from verl import DataProto
 from verl.third_party.vllm import LLM, vllm_version
-from verl.third_party.vllm import parallel_state as vllm_ps  # type: ignore
+from verl.third_party.vllm import parallel_state as vllm_ps
 from verl.utils.debug import GPUMemoryLogger
 from verl.utils.torch_functional import get_response_mask, pad_sequence_to_length
 from verl.workers.rollout.base import BaseRollout
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
-from vllm.lora.request import LoRARequest  # type: ignore  # noqa: E402
+from vllm.lora.request import LoRARequest
 
 # TODO
 # 1. support pp in vllm
@@ -116,8 +116,8 @@ class vLLMRollout(BaseRollout):
         # - `None` means not setting it, so we pop it, and leave it to vLLM default value
         #    (which can vary across different vLLM versions);
         # - Otherwise it's the desired value we want to explicitly set.
-        engine_kwargs = {key: val for key, val in engine_kwargs.items() if val is not None}  # type: ignore
-        lora_kwargs = kwargs.pop("lora_kwargs", {})
+        engine_kwargs = {key: val for key, val in engine_kwargs.items() if val is not None}
+        lora_kwargs = kwargs.pop('lora_kwargs', {})
         self.lora_kwargs = lora_kwargs
         self.inference_engine = LLM(
             actor_module,
@@ -134,7 +134,7 @@ class vLLMRollout(BaseRollout):
             max_num_batched_tokens=max_num_batched_tokens,
             enable_chunked_prefill=config.enable_chunked_prefill,
             **lora_kwargs,
-            **engine_kwargs,  # type: ignore
+            **engine_kwargs,
         )
 
         # Offload vllm model to reduce peak memory usage
@@ -156,7 +156,7 @@ class vLLMRollout(BaseRollout):
         # supporting adding any sampling params from the config file
         for k in config.keys():
             if hasattr(SamplingParams(), str(k)):
-                kwargs[k] = config.get(k)  # type: ignore
+                kwargs[k] = config.get(k)
 
         print(f"kwargs: {kwargs}")
         self.sampling_params = SamplingParams(**kwargs)
@@ -226,8 +226,8 @@ class vLLMRollout(BaseRollout):
             # self.inference_engine.llm_engine.list_loras
             lora_int_ids = list(self.inference_engine.llm_engine.list_loras())
             if len(lora_int_ids) > 0:
-                lora_int_id = lora_int_ids[0]
-                lora_requests = [LoRARequest(lora_name=f"{lora_int_id}", lora_int_id=lora_int_id, lora_path="/simon-stub-path")] * batch_size
+                lora_int_id=lora_int_ids[0]
+                lora_requests = [LoRARequest(lora_name=f"{lora_int_id}",lora_int_id=lora_int_id,lora_path="/simon-stub-path")] * batch_size
         # users can customize different sampling_params at different run
         with self.update_sampling_params(**kwargs):
             output = self.inference_engine.generate(
@@ -274,7 +274,7 @@ class vLLMRollout(BaseRollout):
                 "prompts": idx,
                 "responses": response,
                 "input_ids": seq,  # here input_ids become the whole sentences
-                "rollout_log_probs": log_probs,  # we will recompute old log prob with actor
+                'rollout_log_probs': log_probs, # we will recompute old log prob with actor
                 "attention_mask": attention_mask,
                 "position_ids": position_ids,
             },

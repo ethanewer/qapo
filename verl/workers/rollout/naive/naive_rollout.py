@@ -100,11 +100,11 @@ class NaiveRollout(BaseRollout):
             logits_lst.append(logits)
 
         logits = torch.stack(logits_lst, dim=1)  # (bs, response_length, vocab_size)
-        prompts = idx[:, :prompt_length]  # (bs, prompt_length)  # type: ignore
+        prompts = idx[:, :prompt_length]  # (bs, prompt_length)
         response = idx[:, prompt_length:]  # (bs, response_length)
         log_probs = logprobs_from_logits(logits=logits, labels=response)
         batch = TensorDict(
-            {  # type: ignore
+            {
                 "input_ids": prompts,
                 "responses": response,
                 "sequences": idx,
