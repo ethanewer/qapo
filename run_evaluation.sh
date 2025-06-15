@@ -1,25 +1,49 @@
-#!/bin/bash
 set -x
+
+CHECKPOINT_DIR="path/to/your/checkpoints" 
 
 # HQQ configuration
 use_hqq_rollout=True
 hqq_weight_bits=4
-use_hqq_qat=True
+use_hqq_qat=False
 optimize_hqq_qat=False
 
-if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
-    echo "Error: use_hqq_rollout must be either True or False" >&2
-    exit 1
-fi
+model="Qwen/Qwen2.5-3B-Instruct"
 
+# Validate HQQ configuration
+if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
+    echo "Error: use_hqq_rollout must be either True or False" && exit 1
+fi
+if [ "$use_hqq_qat" != "True" ] && [ "$use_hqq_qat" != "False" ]; then
+    echo "Error: use_hqq_qat must be either True or False" && exit 1
+fi
+if [ "$optimize_hqq_qat" != "True" ] && [ "$optimize_hqq_qat" != "False" ]; then
+    echo "Error: optimize_hqq_qat must be either True or False" && exit 1
+fi
 if [ "$use_hqq_rollout" = "True" ]; then
     rollout_name="vllm_hqq"
 else
     rollout_name="vllm"
 fi
 
-CHECKPOINT_DIR="path/to/your/checkpoints" 
+# Set experiment name
+experiment_name=$(echo "${model#*/}" | sed 's/[.-]/_/g' | tr '[:upper:]' '[:lower:]')
+if [ "$use_hqq_qat" = "True" ]; then
+    if [ "$optimize_hqq_qat" = "True" ]; then
+        experiment_name="${experiment_name}_optimized"
+    fi
+    experiment_name="${experiment_name}_qat"
+fi
+if [ "$use_hqq_rollout" = "True" ]; then
+    experiment_name="${experiment_name}_qapo"
+fi
+if [ "$use_hqq_rollout" = "True" ] || [ "$use_hqq_qat" = "True" ]; then
+    experiment_name="${experiment_name}_${hqq_weight_bits}bit_eval"
+else
+    experiment_name="${experiment_name}_grpo_eval"
+fi
 
+# Data paths
 gsm8k_train_path=$HOME/data/gsm8k/train.parquet
 gsm8k_test_path=$HOME/data/gsm8k/test.parquet
 math_train_path=$HOME/data/math/train.parquet
@@ -38,7 +62,7 @@ python3 -m scripts.evaluate_checkpoints \
     data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
-    actor_rollout_ref.model.path=Qwen/Qwen2.5-3B-Instruct \
+    actor_rollout_ref.model.path=$model \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
@@ -66,7 +90,7 @@ python3 -m scripts.evaluate_checkpoints \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qapo_gsm8k_math' \
-    trainer.experiment_name='qwen2_5_3b_qapo_4bit_quantized_evaluation' \
+    trainer.experiment_name="$experiment_name" \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
