@@ -46,7 +46,7 @@ class FSDPUlyssesShardingManager(BaseShardingManager):
         # restore random states
         if self.device_mesh is not None:
             # revert to previous sp group
-            set_ulysses_sequence_parallel_group(self.prev_sp_group)
+            set_ulysses_sequence_parallel_group(self.prev_sp_group)  # type: ignore
             # TODO: check how to set seed for each model
 
     def preprocess_data(self, data: DataProto) -> DataProto:

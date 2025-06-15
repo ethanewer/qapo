@@ -15,7 +15,7 @@
 In client, we can get the server handler and send RPC request
 """
 
-import ray
+import ray  # type: ignore
 import torch
 from server import Trainer
 from tensordict import TensorDict

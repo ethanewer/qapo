@@ -27,14 +27,14 @@ try:
     # for torch 2.5+
     from torch.distributed.tensor import DTensor
 except ImportError:
-    from torch.distributed._tensor import DTensor
+    from torch.distributed._tensor import DTensor  # type: ignore
 
 from dataclasses import asdict
 
 from verl import DataProto
 from verl.protocol import all_gather_data_proto
 from verl.third_party.vllm import LLM, vllm_version
-from verl.third_party.vllm import parallel_state as vllm_ps
+from verl.third_party.vllm import parallel_state as vllm_ps  # type: ignore
 from verl.utils.debug import GPUMemoryLogger, log_gpu_memory_usage
 from verl.utils.debug.performance import _timer
 from verl.utils.device import get_torch_device
@@ -51,7 +51,7 @@ logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
 
 class HQQFSDPVLLMShardingManager(BaseShardingManager):
     @check_device_is_available()
-    def __init__(self, module: FSDP, inference_engine: LLM, model_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):
+    def __init__(self, module: FSDP, inference_engine: LLM, model_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):  # type: ignore
         self.module = module
         # For AsyncLLM, inference_engine and model_runner are defer initialized in vLLMAsyncRollout.load_model
         self.inference_engine = inference_engine
@@ -144,7 +144,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                         name = name.replace("_fsdp_wrapped_module.", "").replace(".base_layer", "")
                         lora_params[name] = param.detach().cpu()
                     model = model.to(orig_dev)
-            return lora_params
+            return lora_params  # type: ignore
 
         # NOTE: Basically, we only need `get_torch_device().empty_cache()` before vllm wake_up and
         # after vllm sleep, since vllm has its own caching memory allocator CuMemAllocator.
@@ -168,7 +168,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                 params = __collect_lora_params()
             else:
                 params = self.module.state_dict()
-            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))
+            params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))  # type: ignore
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
 
             # Copy, not share memory

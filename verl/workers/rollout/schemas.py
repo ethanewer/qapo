@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import torch
 from pydantic import BaseModel, model_validator
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer  # type: ignore
 
 from verl.tools.schemas import OpenAIFunctionToolCall, OpenAIFunctionToolSchema
 from verl.utils.model import compute_position_id_with_mask
@@ -133,8 +133,8 @@ class AsyncRolloutRequest(BaseModel):
         Update the input_ids, attention_mask, position_ids, and loss_mask of the request in additive manner.
         """
         self.input_ids += new_input_ids
-        attention_mask = [int(attention_mask)] * len(new_input_ids)
-        self.attention_mask += attention_mask
+        attention_mask = [int(attention_mask)] * len(new_input_ids)  # type: ignore
+        self.attention_mask += attention_mask  # type: ignore
         self.loss_mask += [int(loss_mask)] * len(new_input_ids)
         self.position_ids += (compute_position_id_with_mask(torch.tensor(attention_mask)) + (self.position_ids[-1] + 1)).tolist()
 
@@ -147,7 +147,7 @@ class AsyncRolloutRequest(BaseModel):
             self._update_input_ids(generation_prompt_ids, attention_mask=True, loss_mask=False)
 
         if self.use_inference_chat_template:
-            return tokenizer.apply_chat_template([msg.model_dump() for msg in self.messages], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=True, tokenize=True)
+            return tokenizer.apply_chat_template([msg.model_dump() for msg in self.messages], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=True, tokenize=True)  # type: ignore
         else:
             return self.input_ids
 
@@ -158,7 +158,7 @@ class AsyncRolloutRequest(BaseModel):
         tool_calls: Optional[List[OpenAIFunctionToolCall]] = None,
     ) -> None:
         self.messages.append(Message(role="assistant", content=content, tool_calls=tool_calls))
-        content = tokenizer.apply_chat_template([*BASE_CHAT_HISTORY, self.messages[-1]], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=False, tokenize=False)
+        content = tokenizer.apply_chat_template([*BASE_CHAT_HISTORY, self.messages[-1]], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=False, tokenize=False)  # type: ignore
         content_ids = tokenizer.encode(content[self.base_conv_with_gen_prompt_end_pos :], add_special_tokens=False)
         self._update_input_ids(content_ids, attention_mask=True, loss_mask=True)
 
@@ -166,8 +166,8 @@ class AsyncRolloutRequest(BaseModel):
         if not contents:
             return
         self.messages.extend([Message(role="tool", content=content) for content in contents])
-        content = tokenizer.apply_chat_template([*BASE_CHAT_HISTORY, *self.messages[-len(contents) :]], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=False, tokenize=False)
-        content_ids = tokenizer.encode(content[self.base_conv_wo_gen_prompt_end_pos :], add_special_tokens=False)
+        content = tokenizer.apply_chat_template([*BASE_CHAT_HISTORY, *self.messages[-len(contents) :]], tools=([tool.model_dump() for tool in self.tool_schemas] if self.tool_schemas else None), add_generation_prompt=False, tokenize=False)  # type: ignore
+        content_ids = tokenizer.encode(content[self.base_conv_wo_gen_prompt_end_pos :], add_special_tokens=False)  # type: ignore
         self._update_input_ids(content_ids, attention_mask=True, loss_mask=False)
 
     def update_metrics(self, metrics: Any, tool_id: str) -> None:

@@ -18,7 +18,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 from transformers import PretrainedConfig, PreTrainedTokenizer, PreTrainedTokenizerFast
 from vllm import LLM
 from vllm.outputs import EmbeddingRequestOutput, RequestOutput

@@ -15,8 +15,8 @@
 Note that we don't combine the main with ray_trainer as ray_trainer is used by other main.
 """
 
-import hydra
-import ray
+import hydra  # type: ignore
+import ray  # type: ignore
 import torch
 from split_monkey_patch import fit
 
@@ -92,17 +92,17 @@ class RewardManager:
 
 @hydra.main(config_path="config", config_name="ppo_trainer_split", version_base=None)
 def main(config):
-    if not ray.is_initialized():
+    if not ray.is_initialized():  # type: ignore
         # this is for local ray cluster
-        ray.init(
+        ray.init(  # type: ignore
             runtime_env={"env_vars": {"TOKENIZERS_PARALLELISM": "true", "NCCL_DEBUG": "WARN"}},
             num_cpus=config.ray_init.num_cpus,
         )
 
-    ray.get(main_task.remote(config))
+    ray.get(main_task.remote(config))  # type: ignore
 
 
-@ray.remote
+@ray.remote  # type: ignore
 def main_task(config):
     # print initial config
     from pprint import pprint
@@ -143,8 +143,8 @@ def main_task(config):
     from verl.trainer.ppo.ray_trainer import ResourcePoolManager, Role
 
     role_worker_mapping = {
-        Role.ActorRollout: ray.remote(ActorRolloutRefWorker),
-        Role.Critic: ray.remote(CriticWorker),
+        Role.ActorRollout: ray.remote(ActorRolloutRefWorker),  # type: ignore
+        Role.Critic: ray.remote(CriticWorker),  # type: ignore
     }
 
     # NOTE: initialze two resource pool
@@ -168,7 +168,7 @@ def main_task(config):
 
     # use reference model
     if config.algorithm.use_kl_in_reward or config.actor_rollout_ref.actor.use_kl_loss:
-        role_worker_mapping[Role.RefPolicy] = ray.remote(ActorRolloutRefWorker)
+        role_worker_mapping[Role.RefPolicy] = ray.remote(ActorRolloutRefWorker)  # type: ignore
         mapping[Role.RefPolicy] = actor_rollout_ref_pool_id
 
     # we should adopt a multi-source reward function here
@@ -184,7 +184,7 @@ def main_task(config):
             from verl.workers.megatron_workers import RewardModelWorker
         else:
             raise NotImplementedError
-        role_worker_mapping[Role.RewardModel] = ray.remote(RewardModelWorker)
+        role_worker_mapping[Role.RewardModel] = ray.remote(RewardModelWorker)  # type: ignore
         mapping[Role.RewardModel] = critic_pool_id
 
     reward_fn = RewardManager(tokenizer=tokenizer, num_examine=0)
@@ -200,7 +200,7 @@ def main_task(config):
         tokenizer=tokenizer,
         role_worker_mapping=role_worker_mapping,
         resource_pool_manager=resource_pool_manager,
-        ray_worker_group_cls=ray_worker_group_cls,
+        ray_worker_group_cls=ray_worker_group_cls,  # type: ignore
         reward_fn=reward_fn,
         val_reward_fn=val_reward_fn,
     )
@@ -209,4 +209,4 @@ def main_task(config):
 
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore

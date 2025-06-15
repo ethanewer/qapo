@@ -15,7 +15,7 @@
 e2e test verl.single_controller.ray
 """
 
-import ray
+import ray  # type: ignore
 import torch
 
 from verl.single_controller.base.decorator import Dispatch, Execute, collect_all_to_all, register

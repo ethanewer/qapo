@@ -14,7 +14,7 @@
 
 import time
 
-import ray
+import ray  # type: ignore
 
 from verl.single_controller.base.worker import Worker
 from verl.single_controller.ray.base import RayClassWithInitArgs, RayResourcePool, RayWorkerGroup, merge_resource_pool

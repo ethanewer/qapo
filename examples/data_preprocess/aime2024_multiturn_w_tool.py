@@ -20,7 +20,7 @@ Preprocess the DAPO-Math-17k dataset to multiturn format
 import argparse
 import os
 
-import datasets
+import datasets  # type: ignore
 
 from verl.utils.hdfs_io import copy, makedirs
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     data_path = "BytedTsinghua-SIA/AIME-2024"
     dataset = datasets.load_dataset(data_path, "default")
 
-    train_dataset = dataset["train"]
+    train_dataset = dataset["train"]  # type: ignore
 
     # add a row to each data item that represents a unique id
     def make_map_fn(split):
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
         return process_fn
 
-    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)
+    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True)  # type: ignore
 
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir

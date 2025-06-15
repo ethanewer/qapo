@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import pytest
-import ray
+import ray  # type: ignore
 
 from verl.utils.ray_utils import parallel_put
 

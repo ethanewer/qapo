@@ -26,7 +26,7 @@ from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
-import ray
+import ray  # type: ignore
 import tensordict
 import torch
 import torch.distributed

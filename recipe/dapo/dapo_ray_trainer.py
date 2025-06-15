@@ -23,7 +23,7 @@ from pprint import pprint
 
 import numpy as np
 import torch
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 
 from verl import DataProto
 from verl.trainer.ppo.core_algos import agg_loss
@@ -119,7 +119,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                             gen_baseline_output = self.actor_rollout_wg.generate_sequences(gen_baseline_batch)
 
                             new_batch = new_batch.union(gen_baseline_output)
-                            reward_baseline_tensor = self.reward_fn(new_batch)
+                            reward_baseline_tensor = self.reward_fn(new_batch)  # type: ignore
                             reward_baseline_tensor = reward_baseline_tensor.sum(dim=-1)
 
                             new_batch.pop(batch_keys=list(gen_baseline_output.batch.keys()))
@@ -145,12 +145,12 @@ class RayDAPOTrainer(RayPPOTrainer):
                         # we combine with rule-based rm
                         reward_extra_infos_dict: dict[str, list]
                         try:
-                            reward_result = self.reward_fn(new_batch, return_dict=True)
+                            reward_result = self.reward_fn(new_batch, return_dict=True)  # type: ignore
                             reward_tensor = reward_result["reward_tensor"]
                             reward_extra_infos_dict = reward_result["reward_extra_info"]
                         except Exception as e:
                             print(f"Error in reward_fn: {e}")
-                            reward_tensor = self.reward_fn(new_batch)
+                            reward_tensor = self.reward_fn(new_batch)  # type: ignore
                             reward_extra_infos_dict = {}
 
                         new_batch.batch["token_level_scores"] = reward_tensor
@@ -160,7 +160,7 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                         # compute rewards. apply_kl_penalty if available
                         if self.config.algorithm.use_kl_in_reward:
-                            new_batch, kl_metrics = apply_kl_penalty(new_batch, kl_ctrl=self.kl_ctrl_in_reward, kl_penalty=self.config.algorithm.kl_penalty)
+                            new_batch, kl_metrics = apply_kl_penalty(new_batch, kl_ctrl=self.kl_ctrl_in_reward, kl_penalty=self.config.algorithm.kl_penalty)  # type: ignore
                             metrics.update(kl_metrics)  # TODO: This will be cleared if we use multiple genenration batches
                         else:
                             new_batch.batch["token_level_rewards"] = new_batch.batch["token_level_scores"]
@@ -193,7 +193,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                             if traj_from_prompt_uid in kept_prompt_uids:
                                 kept_traj_idxs.append(idx)
 
-                        new_batch = new_batch[kept_traj_idxs]
+                        new_batch = new_batch[kept_traj_idxs]  # type: ignore
                         batch = new_batch if batch is None else DataProto.concat([batch, new_batch])
 
                         prompt_bsz = self.config.data.train_batch_size
@@ -213,7 +213,7 @@ class RayDAPOTrainer(RayPPOTrainer):
 
                     # === Updating ===
 
-                    batch.batch["response_mask"] = compute_response_mask(batch)
+                    batch.batch["response_mask"] = compute_response_mask(batch)  # type: ignore
 
                     # Balance the number of valid tokens across DP ranks.
                     # NOTE: This usually changes the order of data in the `batch`,
@@ -221,7 +221,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                     # but might affect the loss calculation (due to the change of mini-batching).
                     # TODO: Decouple the DP balancing and mini-batching.
                     if self.config.trainer.balance_batch:
-                        self._balance_batch(batch, metrics=metrics)
+                        self._balance_batch(batch, metrics=metrics)  # type: ignore
 
                     # compute global_valid tokens
                     batch.meta_info["global_token_num"] = torch.sum(batch.batch["attention_mask"], dim=-1).tolist()
@@ -236,7 +236,7 @@ class RayDAPOTrainer(RayPPOTrainer):
                         old_log_prob_metrics = {"actor/entropy_loss": entropy_loss.detach().item()}
                         metrics.update(old_log_prob_metrics)
                         old_log_prob.batch.pop("entropys")
-                        batch = batch.union(old_log_prob)
+                        batch = batch.union(old_log_prob)  # type: ignore
 
                     if self.use_reference_policy:
                         # compute reference log_prob

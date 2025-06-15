@@ -19,7 +19,7 @@ import concurrent.futures
 import os
 from typing import Any, List, Optional
 
-import ray
+import ray  # type: ignore
 
 
 def ray_noset_visible_devices(env_vars=os.environ):

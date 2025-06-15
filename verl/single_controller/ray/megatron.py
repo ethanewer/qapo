@@ -14,7 +14,7 @@
 
 from typing import Dict, Optional
 
-import ray
+import ray  # type: ignore
 
 from verl.single_controller.base.megatron.worker import DistGlobalInfo, DistRankInfo
 from verl.single_controller.base.megatron.worker_group import MegatronWorkerGroup

@@ -15,8 +15,8 @@
 
 import os
 
-import hydra
-import ray
+import hydra  # type: ignore
+import ray  # type: ignore
 
 from recipe.spin.spin_trainer import RaySPINTrainer
 from verl.trainer.ppo.reward import get_custom_reward_fn

@@ -49,7 +49,7 @@ Implementation details:
 
    from verl.single_controller.base import Worker
    from verl.single_controller.ray import RayWorkerGroup, RayClassWithInitArgs, RayResourcePool
-   import ray
+   import ray  # type: ignore
 
    @ray.remote
    class SampleGenerator(Worker):
@@ -76,7 +76,7 @@ API: compute reference log probability
 .. code:: python
 
    from verl.single_controller.base import Worker
-   import ray
+   import ray  # type: ignore
 
    @ray.remote
    class ReferencePolicy(Worker):
@@ -94,7 +94,7 @@ API: Update actor model parameters
 .. code:: python
 
    from verl.single_controller.base import Worker
-   import ray
+   import ray  # type: ignore
 
    @ray.remote
    class DPOActor(Worker):

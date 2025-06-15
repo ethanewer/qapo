@@ -17,9 +17,9 @@ Generate responses given a dataset of prompts
 
 import os
 
-import hydra
+import hydra  # type: ignore
 import numpy as np
-import ray
+import ray  # type: ignore
 
 os.environ["NCCL_DEBUG"] = "WARN"
 os.environ["TOKENIZERS_PARALLELISM"] = "true"

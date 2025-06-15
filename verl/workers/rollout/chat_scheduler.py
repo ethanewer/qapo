@@ -62,7 +62,7 @@ class CompletionCallback(ABC):
     @property
     def extra_body(self) -> Dict[str, Any]:
         """Extra body pass to OpenAI API."""
-        return None
+        return None  # type: ignore
 
     @abstractmethod
     async def __call__(self, messages: List[Dict[str, str]], completions: ChatCompletion, info: Dict[str, Any]):
@@ -117,9 +117,9 @@ class ToolCompletionCallback(CompletionCallback):
 
         # STEP 2: call tools
         tool_calls = completions.choices[0].message.tool_calls
-        print(f"[id={completions.id},turn={len(messages)},finish_reason={finish_reason}] Call {len(tool_calls)} tools")
+        print(f"[id={completions.id},turn={len(messages)},finish_reason={finish_reason}] Call {len(tool_calls)} tools")  # type: ignore
         tasks = []
-        for tool_call in tool_calls:
+        for tool_call in tool_calls:  # type: ignore
             tasks.append(self._call_tool(tool_call))
         tool_responses = await asyncio.gather(*tasks)
         if any(isinstance(item, Exception) for item in tool_responses):
@@ -141,7 +141,7 @@ class ToolCompletionCallback(CompletionCallback):
             tool_response, tool_reward_score, tool_metrics = await tool.execute(instance_id, tool_args)
         except Exception as e:
             logger.exception(f"Error when executing tool: {e}")
-            return e
+            return e  # type: ignore
         finally:
             await tool.release(instance_id)
 
@@ -182,7 +182,7 @@ class ToolCompletionCallback(CompletionCallback):
         attention_mask = torch.cat([prompts["attention_mask"], responses["attention_mask"]], dim=1)
         position_ids = (attention_mask.cumsum(dim=1) - 1) * attention_mask
 
-        batch = TensorDict(
+        batch = TensorDict(  # type: ignore
             {
                 "prompts": prompts["input_ids"],  # [bsz, prompt_length]
                 "responses": responses["input_ids"],  # [bsz, response_length]
@@ -195,7 +195,7 @@ class ToolCompletionCallback(CompletionCallback):
         )
 
         num_turns = np.array([len(conversation) for conversation in batch_conversations], dtype=np.int32)
-        return DataProto(batch=batch, non_tensor_batch={"__num_turns__": num_turns})
+        return DataProto(batch=batch, non_tensor_batch={"__num_turns__": num_turns})  # type: ignore
 
     def _mask_out_tools_calling_tokens(
         self,
@@ -337,7 +337,7 @@ class ChatCompletionScheduler:
             logger.exception(f"chat completion failed with exception: {exception}")
         else:
             try:
-                await self.completion_callback(messages, completions, info)
+                await self.completion_callback(messages, completions, info)  # type: ignore
             except Exception as e:
                 logger.exception(f"completion callback failed with exception: {e}")
 
@@ -364,7 +364,7 @@ class ChatCompletionScheduler:
                 data = await resp.json()
                 return ChatCompletion(**data)
         finally:
-            await session.close()
+            await session.close()  # type: ignore
 
     async def generate_sequences(self, batch: DataProto) -> DataProto:
         kwargs = dict(
@@ -391,8 +391,8 @@ class ChatCompletionScheduler:
             tasks.append(
                 asyncio.create_task(
                     self._submit_chat_completions_semaphore(
-                        messages=batch_conversations[batch_index],
-                        request_id=None,
+                        messages=batch_conversations[batch_index],  # type: ignore
+                        request_id=None,  # type: ignore
                         sampling_params=kwargs,
                     )
                 )
@@ -401,7 +401,7 @@ class ChatCompletionScheduler:
         await asyncio.gather(*tasks)
         print("[ChatCompletionScheduler] generate_sequences done")
 
-        return self.completion_callback.postprocess(batch, batch_conversations, n=n)
+        return self.completion_callback.postprocess(batch, batch_conversations, n=n)  # type: ignore
 
     async def _submit_chat_completions_semaphore(self, messages: List[Dict[str, str]], request_id: str, sampling_params: Dict[str, Any]):
         done = asyncio.Event()

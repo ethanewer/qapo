@@ -22,8 +22,7 @@ from enum import Enum
 from typing import Any, Callable, Optional, Tuple, TypeVar
 from uuid import uuid4
 
-import ray
-import ray.actor
+import ray  # type: ignore  # type: ignore.actor
 
 from verl.tools.utils.search_r1_like_utils import perform_single_search_batch
 

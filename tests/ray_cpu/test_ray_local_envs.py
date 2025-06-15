@@ -17,7 +17,7 @@ e2e test verl.single_controller.ray
 
 import os
 
-import ray
+import ray  # type: ignore
 
 from verl.single_controller.base.worker import Worker
 from verl.single_controller.ray.base import RayClassWithInitArgs, RayResourcePool, RayWorkerGroup

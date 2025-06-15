@@ -21,14 +21,14 @@ import os
 
 import torch
 import torch.distributed
-from megatron.core import parallel_state as mpu
+from megatron.core import parallel_state as mpu  # type: ignore
 from torch import nn
 
 from verl import DataProto
 from verl.models.mcore.weight_converter import McoreToHFWeightConverterBase
 from verl.protocol import all_gather_data_proto
 from verl.third_party.vllm import LLM, vllm_version
-from verl.third_party.vllm import parallel_state as vllm_ps
+from verl.third_party.vllm import parallel_state as vllm_ps  # type: ignore
 from verl.utils.debug import GPUMemoryLogger
 from verl.utils.debug.performance import _timer
 from verl.utils.megatron_utils import (

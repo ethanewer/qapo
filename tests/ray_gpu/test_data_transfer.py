@@ -15,7 +15,7 @@
 In this test, we instantiate a data parallel worker with 8 GPUs
 """
 
-import ray
+import ray  # type: ignore
 import tensordict
 import torch
 from codetiming import Timer

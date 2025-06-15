@@ -17,8 +17,8 @@ Using FSDPTrainer
 
 import os
 
-import hydra
-import ray
+import hydra  # type: ignore
+import ray  # type: ignore
 import torch
 from transformers import AutoTokenizer
 

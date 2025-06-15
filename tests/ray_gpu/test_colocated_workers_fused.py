@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import ray
+import ray  # type: ignore
 
 from verl import DataProto
 from verl.single_controller.base import Worker

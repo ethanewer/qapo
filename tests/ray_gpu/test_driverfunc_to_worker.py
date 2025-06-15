@@ -14,7 +14,7 @@
 
 import os
 
-import ray
+import ray  # type: ignore
 import torch
 from tensordict import TensorDict
 

@@ -18,7 +18,7 @@ Create a simple multi-turn dataset for testing
 import argparse
 import os
 
-import pandas as pd
+import pandas as pd  # type: ignore
 
 
 def main():

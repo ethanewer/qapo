@@ -19,11 +19,11 @@ The input is a parquet file that contains N generated sequences and (optional) t
 
 from collections import defaultdict
 
-import hydra
+import hydra  # type: ignore
 import numpy as np
-import pandas as pd
-import ray
-from tqdm import tqdm
+import pandas as pd  # type: ignore
+import ray  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from verl.trainer.ppo.reward import get_custom_reward_fn
 from verl.utils.fs import copy_to_local
@@ -33,7 +33,7 @@ from verl.utils.fs import copy_to_local
 def process_item(config, data_source, response_lst, reward_data):
     reward_fn = get_custom_reward_fn(config)
     ground_truth = reward_data["ground_truth"]
-    score_lst = [reward_fn(data_source, r, ground_truth) for r in response_lst]
+    score_lst = [reward_fn(data_source, r, ground_truth) for r in response_lst]  # type: ignore
     return data_source, np.mean(score_lst)
 
 
@@ -55,7 +55,7 @@ def main(config):
     data_source_reward = defaultdict(list)
 
     # Create remote tasks
-    remote_tasks = [process_item.remote(config, data_sources[i], responses[i], reward_model_data[i]) for i in range(total)]
+    remote_tasks = [process_item.remote(config, data_sources[i], responses[i], reward_model_data[i]) for i in range(total)]  # type: ignore
 
     # Process results as they come in
     with tqdm(total=total) as pbar:
@@ -75,4 +75,4 @@ def main(config):
 
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore

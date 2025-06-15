@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-import ray
+import ray  # type: ignore
 from tensordict import TensorDict
 from torch.testing._internal.common_distributed import MultiProcessTestCase
 from transformers import AutoConfig, AutoTokenizer

@@ -16,7 +16,7 @@ import os
 import sys
 import time
 
-import ray
+import ray  # type: ignore
 
 from verl.single_controller.base.decorator import Dispatch, register
 from verl.single_controller.base.worker import Worker

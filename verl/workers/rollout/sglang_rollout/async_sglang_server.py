@@ -15,7 +15,7 @@
 import asyncio
 import logging
 
-import ray
+import ray  # type: ignore
 from omegaconf import DictConfig
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -60,17 +60,17 @@ class AsyncSglangServer(AsyncServerBase):
         request = await raw_request.json()
 
         # only send request to master worker in tp rank 0
-        output_future = self.master_worker.chat_completion.remote(request)
+        output_future = self.master_worker.chat_completion.remote(request)  # type: ignore
         [outputs] = await asyncio.gather(output_future)
         return JSONResponse(outputs)
 
-    def wake_up(self):
+    def wake_up(self):  # type: ignore
         futures = []
         for worker in self.workers:
             futures.append(worker.wake_up.remote())
         ray.get(futures)
 
-    def sleep(self):
+    def sleep(self):  # type: ignore
         futures = []
         for worker in self.workers:
             futures.append(worker.sleep.remote())

@@ -16,7 +16,7 @@ import multiprocessing
 import os
 from functools import partial
 
-import ray
+import ray  # type: ignore
 
 from verl import DataProto
 from verl.utils.reward_score import default_compute_score

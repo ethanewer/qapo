@@ -29,8 +29,8 @@
 Note that we don't combine the main with ray_trainer as ray_trainer is used by other main.
 """
 
-import hydra
-import ray
+import hydra  # type: ignore
+import ray  # type: ignore
 
 from .prime_ray_trainer import RayPRIMETrainer
 

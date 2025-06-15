@@ -17,7 +17,7 @@ import os
 os.environ["RAY_DEDUP_LOGS"] = "0"
 os.environ["NCCL_DEBUG"] = "WARN"
 
-import ray
+import ray  # type: ignore
 import torch
 import torch.distributed
 

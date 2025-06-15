@@ -18,7 +18,7 @@ Preprocess the Geometry3k dataset to parquet format
 import argparse
 import os
 
-import datasets
+import datasets  # type: ignore
 
 from verl.utils.hdfs_io import copy, makedirs
 
@@ -33,8 +33,8 @@ if __name__ == "__main__":
 
     dataset = datasets.load_dataset(data_source)
 
-    train_dataset = dataset["train"]
-    test_dataset = dataset["test"]
+    train_dataset = dataset["train"]  # type: ignore
+    test_dataset = dataset["test"]  # type: ignore
 
     instruction_following = (
         r"You FIRST think about the reasoning process as an internal monologue and then provide the final answer. "
@@ -71,8 +71,8 @@ if __name__ == "__main__":
 
         return process_fn
 
-    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True, num_proc=8)
-    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True, num_proc=8)
+    train_dataset = train_dataset.map(function=make_map_fn("train"), with_indices=True, num_proc=8)  # type: ignore
+    test_dataset = test_dataset.map(function=make_map_fn("test"), with_indices=True, num_proc=8)  # type: ignore
 
     local_dir = args.local_dir
     hdfs_dir = args.hdfs_dir

@@ -33,7 +33,7 @@ import torch.distributed
 from omegaconf import DictConfig
 from tensordict import TensorDict
 from torch import nn
-from vllm import SamplingParams
+from vllm import SamplingParams  # type: ignore
 
 from verl import DataProto
 from verl.utils.torch_functional import get_response_mask, pad_sequence_to_length
@@ -77,7 +77,7 @@ class FIREvLLMRollout(vLLMRollout):
             self.sampling_params.max_tokens = config.response_length - 1
             for k in config.keys():
                 if hasattr(SamplingParams(), str(k)):
-                    kwargs_0[k] = config.get(k)
+                    kwargs_0[k] = config.get(k)  # type: ignore
             self.sampling_params_0 = SamplingParams(**kwargs_0)
 
     @contextmanager
@@ -104,7 +104,7 @@ class FIREvLLMRollout(vLLMRollout):
         for key, value in old_sampling_params_args.items():
             setattr(self.sampling_params, key, value)
         if self.use_fire_sampling:
-            for key, value in old_sampling_params_args_0.items():
+            for key, value in old_sampling_params_args_0.items():  # type: ignore
                 setattr(self.sampling_params_0, key, value)
 
     @torch.no_grad()

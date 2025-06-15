@@ -19,8 +19,8 @@ import itertools
 
 import torch
 import torch.distributed
-from megatron.core import parallel_state as mpu
-from megatron.core.pipeline_parallel import get_forward_backward_func
+from megatron.core import parallel_state as mpu  # type: ignore
+from megatron.core.pipeline_parallel import get_forward_backward_func  # type: ignore
 from tensordict import TensorDict
 
 from verl import DataProto
@@ -79,7 +79,7 @@ class MegatronRewardModel(BasePPORewardModel):
             begin_pos, end_pos = non_zero_indices[0].item(), non_zero_indices[-1].item()
             valid_id = id[begin_pos : end_pos + 1]
             # 2. decode by sft_tokenizer, remove sft system prompts
-            decode_result = self.sft_tokenizer.decode(valid_id)
+            decode_result = self.sft_tokenizer.decode(valid_id)  # type: ignore
             # workaround
             decode_with_rm_chat = decode_result.replace("<|user|>\n", "[INST] ").replace("</s>\n<|assistant|>\n", " [/INST]").replace("</s> \n<|assistant|>\n", " [/INST]") + "</s>"
             if print_decode and torch.distributed.get_rank() == 0:
@@ -91,7 +91,7 @@ class MegatronRewardModel(BasePPORewardModel):
                 )
                 print_decode = False
             # 3. encode by rm_tokenizer
-            rm_input_ids = self.rm_tokenizer(decode_with_rm_chat, return_tensors="pt")["input_ids"][0].to(input_ids.device)
+            rm_input_ids = self.rm_tokenizer(decode_with_rm_chat, return_tensors="pt")["input_ids"][0].to(input_ids.device)  # type: ignore
             # 4. generate attention_mask and position_ids
             rm_attention_mask = torch.ones_like(rm_input_ids, device=input_ids.device)
             cur_seqlen = rm_input_ids.shape[-1]
@@ -102,7 +102,7 @@ class MegatronRewardModel(BasePPORewardModel):
                 rm_attention_mask = rm_attention_mask[:ori_seqlen]
             else:
                 # right padding
-                rm_input_ids = pad_sequence_to_length(rm_input_ids, ori_seqlen, self.rm_tokenizer.pad_token_id)
+                rm_input_ids = pad_sequence_to_length(rm_input_ids, ori_seqlen, self.rm_tokenizer.pad_token_id)  # type: ignore
                 rm_attention_mask = pad_sequence_to_length(rm_attention_mask, ori_seqlen, 0)
             rm_position_ids = torch.arange(0, ori_seqlen, device=input_ids.device)
             input_ids_for_rm.append(torch.unsqueeze(rm_input_ids, dim=0))
@@ -118,7 +118,7 @@ class MegatronRewardModel(BasePPORewardModel):
         data.batch["attention_mask"] = attention_mask_for_rm
         data.batch["position_ids"] = position_ids_for_rm
 
-        return data, ori_values
+        return data, ori_values  # type: ignore
 
     @torch.no_grad()
     def compute_reward(self, data: DataProto) -> DataProto:
@@ -126,7 +126,7 @@ class MegatronRewardModel(BasePPORewardModel):
             self.load_params_to_cuda()
 
         if self.use_different_tokenizer:
-            data, ori_values = self.re_encode_by_rm_tokenizer(data)
+            data, ori_values = self.re_encode_by_rm_tokenizer(data)  # type: ignore
 
         input_ids = data.batch["input_ids"]  # (bs, seq_len')
         attention_mask = data.batch["attention_mask"]
@@ -175,16 +175,16 @@ class MegatronRewardModel(BasePPORewardModel):
         rewards = torch.gather(token_level_rewards, dim=1, index=ends)  # (bs, 1)
 
         if self.use_different_tokenizer:
-            data.batch.update(ori_values)
-            input_ids = ori_values["input_ids"]
-            attention_mask = ori_values["attention_mask"]
-            position_ids = ori_values["position_ids"]
+            data.batch.update(ori_values)  # type: ignore
+            input_ids = ori_values["input_ids"]  # type: ignore
+            attention_mask = ori_values["attention_mask"]  # type: ignore
+            position_ids = ori_values["position_ids"]  # type: ignore
 
-        token_level_rewards = rewards.expand(attention_mask.shape[0], attention_mask.shape[1])  # (bs, ori_seqlen)
+        token_level_rewards = rewards.expand(attention_mask.shape[0], attention_mask.shape[1])  # (bs, ori_seqlen)  # type: ignore
 
         # assign last valid token reward to ori position
-        eos_mask_idx = torch.argmax(position_ids * attention_mask, dim=-1)  # (bs,)
-        eos_mask = torch.zeros_like(attention_mask)
+        eos_mask_idx = torch.argmax(position_ids * attention_mask, dim=-1)  # (bs,)  # type: ignore
+        eos_mask = torch.zeros_like(attention_mask)  # type: ignore
         eos_mask[torch.arange(batch_size), eos_mask_idx] = 1.0
 
         token_level_rewards = token_level_rewards * eos_mask
@@ -196,7 +196,7 @@ class MegatronRewardModel(BasePPORewardModel):
             # add empty cache after each compute
             torch.cuda.empty_cache()
 
-        batch = TensorDict({"rm_scores": token_level_rewards}, batch_size=input_ids.shape[0])
+        batch = TensorDict({"rm_scores": token_level_rewards}, batch_size=input_ids.shape[0])  # type: ignore
 
         return DataProto(batch=batch)
 

@@ -18,6 +18,7 @@ Contain small python utility functions
 import importlib
 import multiprocessing
 import os
+import pickle  # Import pickle at the top level
 import queue  # Import the queue module for exception type hint
 import signal
 from functools import wraps
@@ -38,8 +39,6 @@ def _mp_target_wrapper(target_func: Callable, mp_queue: multiprocessing.Queue, a
     except Exception as e:
         # Ensure the exception is pickleable for the queue
         try:
-            import pickle
-
             pickle.dumps(e)  # Test if the exception is pickleable
             mp_queue.put((False, e))  # Indicate failure and put exception
         except (pickle.PicklingError, TypeError):
@@ -138,15 +137,15 @@ def timeout_limit(seconds: float, use_signals: bool = False):
     return decorator
 
 
-def union_two_dict(dict1: Dict, dict2: Dict):
+def union_two_dict(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
     """Union two dict. Will throw an error if there is an item not the same object with the same key.
 
     Args:
-        dict1:
-        dict2:
+        dict1: First dictionary to union
+        dict2: Second dictionary to union
 
     Returns:
-
+        The unioned dictionary
     """
     for key, val in dict2.items():
         if key in dict1:
@@ -201,39 +200,74 @@ class NestedNamespace(SimpleNamespace):
 
 
 class DynamicEnumMeta(type):
-    def __iter__(cls) -> Iterator[Any]:
-        return iter(cls._registry.values())
+    def __new__(mcs, name: str, bases: tuple, namespace: dict) -> "DynamicEnumMeta":
+        cls = super().__new__(mcs, name, bases, namespace)
+        cls._registry = {}  # type: ignore
+        cls._next_value = 0  # type: ignore
+        return cls
+
+    def __getitem__(cls, key: str) -> "DynamicEnum":  # type: ignore
+        if key not in cls._registry:  # type: ignore
+            raise KeyError(f"{key} not registered")
+        return cls._registry[key]  # type: ignore
+
+    def __iter__(cls) -> Iterator["DynamicEnum"]:  # type: ignore
+        return iter(cls._registry.values())  # type: ignore
+
+    def __len__(cls) -> int:  # type: ignore
+        return len(cls._registry)  # type: ignore
+
+    def register(cls, key: str) -> "DynamicEnum":  # type: ignore
+        if key in cls._registry:  # type: ignore
+            raise ValueError(f"{key} already registered")
+        member = cls(key)
+        cls._registry[key] = member  # type: ignore
+        setattr(cls, key, member)
+        return member
 
     def __contains__(cls, item: Any) -> bool:
-        # allow `name in EnumClass` or `member in EnumClass`
-        if isinstance(item, str):
-            return item in cls._registry
-        return item in cls._registry.values()
+        return item in cls._registry.values()  # type: ignore
 
-    def __getitem__(cls, name: str) -> Any:
-        return cls._registry[name]
+    def names(cls) -> list[str]:
+        return list(cls._registry.keys())  # type: ignore
 
-    def __reduce_ex__(cls, protocol):
-        # Always load the existing module and grab the class
-        return getattr, (importlib.import_module(cls.__module__), cls.__name__)
+    def values(cls) -> list["DynamicEnum"]:
+        return list(cls._registry.values())  # type: ignore
 
-    def names(cls):
-        return list(cls._registry.keys())
-
-    def values(cls):
-        return list(cls._registry.values())
+    def from_name(cls, name: str) -> Optional["DynamicEnum"]:
+        return cls._registry.get(name)  # type: ignore
 
 
 class DynamicEnum(metaclass=DynamicEnumMeta):
-    _registry: Dict[str, "DynamicEnum"] = {}
-    _next_value: int = 0
+    """Enum class defining different dispatch modes for distributed computation.
 
-    def __init__(self, name: str, value: int):
+    Each mode represents a specific strategy for distributing data across
+    different ranks in a distributed system. The modes are used to control
+    how data is partitioned and processed across different worker groups.
+    """
+
+    _registry = {}  # type: ignore
+    _next_value = 0  # type: ignore
+
+    def __init__(self, name: str):
         self.name = name
-        self.value = value
+        self.value = self._next_value  # type: ignore
+        self._registry[name] = self  # type: ignore
+        self._next_value += 1  # type: ignore
 
-    def __repr__(self):
-        return f"<{self.__class__.__name__}.{self.name}: {self.value}>"
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}.{self.name}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, DynamicEnum):
+            return NotImplemented
+        return self.value == other.value  # type: ignore
+
+    def __hash__(self) -> int:
+        return hash(self.value)  # type: ignore
 
     def __reduce_ex__(self, protocol):
         """
@@ -243,28 +277,6 @@ class DynamicEnum(metaclass=DynamicEnumMeta):
         module = importlib.import_module(self.__class__.__module__)
         enum_cls = getattr(module, self.__class__.__name__)
         return getattr, (enum_cls, self.name)
-
-    @classmethod
-    def register(cls, name: str) -> "DynamicEnum":
-        key = name.upper()
-        if key in cls._registry:
-            raise ValueError(f"{key} already registered")
-        member = cls(key, cls._next_value)
-        cls._registry[key] = member
-        setattr(cls, key, member)
-        cls._next_value += 1
-        return member
-
-    @classmethod
-    def remove(cls, name: str):
-        key = name.upper()
-        member = cls._registry.pop(key)
-        delattr(cls, key)
-        return member
-
-    @classmethod
-    def from_name(cls, name: str) -> Optional["DynamicEnum"]:
-        return cls._registry.get(name.upper())
 
 def convert_to_regular_types(obj):
     """Convert Hydra configs and other special types to regular Python types."""

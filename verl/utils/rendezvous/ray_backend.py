@@ -15,7 +15,7 @@
 import logging
 import time
 
-import ray
+import ray  # type: ignore
 from cupy.cuda.nccl import NcclCommunicator, get_unique_id
 from ray.util import list_named_actors
 

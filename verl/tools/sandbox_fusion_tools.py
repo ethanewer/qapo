@@ -20,9 +20,7 @@ from enum import Enum
 from typing import Any, Callable, Optional, Tuple, TypeVar
 from uuid import uuid4
 
-import ray
-import ray.actor
-import ray.util.multiprocessing
+import ray  # type: ignore  # type: ignore.actor  # type: ignore.util.multiprocessing
 
 from verl.tools.base_tool import BaseTool
 from verl.utils.reward_score.sandbox_fusion.utils import _process_single_case

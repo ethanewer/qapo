@@ -21,7 +21,7 @@ os.environ["MEGATRON_USE_CUDA_TIMER"] = "0"
 os.environ["MEGATRON_START_PROCESS_TIMER"] = "False"
 os.environ["NCCL_DEBUG"] = "WARN"
 
-import ray
+import ray  # type: ignore
 import torch
 from megatron.core import parallel_state as mpu
 from megatron.core import tensor_parallel

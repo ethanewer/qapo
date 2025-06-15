@@ -18,9 +18,9 @@ import logging
 import os
 import tempfile
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from huggingface_hub import hf_hub_download
-from huggingface_hub.utils import EntryNotFoundError
+from huggingface_hub.utils import EntryNotFoundError  # type: ignore
 
 from verl.utils.hdfs_io import copy, makedirs
 

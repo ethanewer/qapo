@@ -28,8 +28,8 @@ try:
     from urllib.parse import urlparse
     from urllib.request import urlopen
 except ImportError:
-    from urllib2 import urlopen
-    from urlparse import urlparse
+    from urllib2 import urlopen  # type: ignore
+    from urlparse import urlparse  # type: ignore
 import argparse
 import importlib.metadata
 
@@ -187,7 +187,7 @@ def check_pip_package_versions():
 def check_cuda_versions():
     if torch.cuda.is_available():
         try:
-            cuda_runtime_version = torch.version.cuda
+            cuda_runtime_version = torch.version.cuda  # type: ignore
             print(f"CUDA Runtime : {cuda_runtime_version}")
             import subprocess
 

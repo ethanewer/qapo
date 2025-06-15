@@ -69,7 +69,7 @@ class MegatronSGLangShardingManager(BaseShardingManager):
         if self.device_mesh is not None:
             self.infer_tp_size = self.device_mesh["tp"].mesh.size()[0]
         else:
-            self.infer_tp_size = self.inference_engine._tp_size
+            self.infer_tp_size = self.inference_engine._tp_size  # type: ignore
 
         # Note that torch_random_states may be different on each dp rank
         self.torch_random_states = torch.cuda.get_rng_state()
@@ -98,7 +98,7 @@ class MegatronSGLangShardingManager(BaseShardingManager):
             # important: need to manually set the random states of each tp to be identical.
             if self.device_mesh is not None:
                 self.torch_random_states = torch.cuda.get_rng_state()
-                torch.cuda.set_rng_state(self.gen_random_states)
+                torch.cuda.set_rng_state(self.gen_random_states)  # type: ignore
 
     @GPUMemoryLogger(role="MegatronSGLangShardingManager exit", logger=logger)
     def __exit__(self, exc_type, exc_value, traceback):
@@ -118,16 +118,16 @@ class MegatronSGLangShardingManager(BaseShardingManager):
             torch.cuda.set_rng_state(self.torch_random_states)
 
     async def update_weights(self, params):
-        if self.device_mesh["tp"].get_local_rank() == 0:
-            await self.inference_engine.resume_memory_occupation()
+        if self.device_mesh["tp"].get_local_rank() == 0:  # type: ignore
+            await self.inference_engine.resume_memory_occupation()  # type: ignore
 
         # Most naive implementation, can optimize a lot if it is bottleneck from sglang Engine weight update
         # named_tensors = [(k, v) for k, v in params.items()]
         named_tensors = params
         load_format = None
         for tensor_index, (name, tensor) in enumerate(named_tensors):
-            if self.device_mesh["tp"].get_local_rank() == 0:
-                await self.inference_engine.update_weights_from_tensor(
+            if self.device_mesh["tp"].get_local_rank() == 0:  # type: ignore
+                await self.inference_engine.update_weights_from_tensor(  # type: ignore
                     named_tensors=[
                         (
                             name,
@@ -138,12 +138,12 @@ class MegatronSGLangShardingManager(BaseShardingManager):
                     flush_cache=False,
                 )
 
-            if self.device_mesh["tp"].get_local_rank() == 0:
-                await self.inference_engine.flush_cache()
+            if self.device_mesh["tp"].get_local_rank() == 0:  # type: ignore
+                await self.inference_engine.flush_cache()  # type: ignore
 
     async def release_memory(self):
-        if self.device_mesh["tp"].get_local_rank() == 0:
-            await self.inference_engine.release_memory_occupation()
+        if self.device_mesh["tp"].get_local_rank() == 0:  # type: ignore
+            await self.inference_engine.release_memory_occupation()  # type: ignore
 
     @GPUMemoryLogger(role="FSDPSGLangShardingManager enter", logger=logger)
     async def wake_up(self):
@@ -158,7 +158,7 @@ class MegatronSGLangShardingManager(BaseShardingManager):
         # important: need to manually set the random states of each tp to be identical.
         if self.device_mesh is not None:
             self.torch_random_states = torch.cuda.get_rng_state()
-            torch.cuda.set_rng_state(self.gen_random_states)
+            torch.cuda.set_rng_state(self.gen_random_states)  # type: ignore
 
     @GPUMemoryLogger(role="FSDPSGLangShardingManager exit", logger=logger)
     async def sleep(self):
@@ -181,7 +181,7 @@ class MegatronSGLangShardingManager(BaseShardingManager):
         # DP_COMPUTE_PROTO: all training ranks are dp, the same as fsdp
         if self.infer_tp_size == 1:
             return data
-        all_gather_data_proto(data, self.device_mesh["tp"].get_group())
+        all_gather_data_proto(data, self.device_mesh["tp"].get_group())  # type: ignore
         return data
 
     @GPUMemoryLogger(role="megatron sglang sharding_manager", logger=logger)
@@ -189,4 +189,4 @@ class MegatronSGLangShardingManager(BaseShardingManager):
         # DP_COMPUTE_PROTO: all training ranks are dp, the same as fsdp
         if self.infer_tp_size == 1:
             return data
-        return data.chunk(chunks=self.infer_tp_size)[self.device_mesh["tp"].get_local_rank()]
+        return data.chunk(chunks=self.infer_tp_size)[self.device_mesh["tp"].get_local_rank()]  # type: ignore
