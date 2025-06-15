@@ -260,6 +260,17 @@ class ActorRolloutRefWorker(Worker):
                 # Convert config to regular Python types before creating PEFT model
                 lora_config = {"task_type": TaskType.CAUSAL_LM, "r": self.config.model.lora_rank, "lora_alpha": self.config.model.lora_alpha, "target_modules": convert_to_regular_types(self.config.model.target_modules), "bias": "none"}
                 actor_module = get_peft_model(actor_module, LoraConfig(**lora_config))
+
+            # ---------- NEW ----------
+            if fsdp_config.get("use_hqq_qat", False):
+                from verl.hqq_qat import replace_linear_with_fake_hqq
+
+                assert not self._is_lora, "LORA with HQQ QAT is not supported yet."
+                hqq_qat_config = fsdp_config.get("hqq_qat_config", None)
+                replace_linear_with_fake_hqq(actor_module, hqq_qat_config)
+                print("HQQ ROLLOUT CONFIG:", hqq_qat_config)
+            # -------------------------
+
         torch.distributed.barrier()
 
         if self.rank == 0:

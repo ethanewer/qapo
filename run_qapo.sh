@@ -41,7 +41,10 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=8 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.name=vllm_hqq \
-    actor_rollout_ref.rollout.hqq_weight_bits=4 \
+    actor_rollout_ref.rollout.hqq_config.weight_bits=4 \
+    actor_rollout_ref.actor.fsdp_config.use_hqq_qat=True \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=4 \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=False \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
