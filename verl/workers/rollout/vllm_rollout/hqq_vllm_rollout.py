@@ -146,7 +146,7 @@ class HQQvLLMRollout(BaseRollout):
         if config.get("limit_images", None):  # support for multi-image data
             engine_kwargs["limit_mm_per_prompt"] = {"image": config.get("limit_images")}
 
-        # ---------- NEW ----------
+        # --------------- NEW ---------------
         from hqq.utils.vllm import set_vllm_onthefly_hqq_quant  # type: ignore
 
         set_vllm_onthefly_hqq_quant(
@@ -164,7 +164,7 @@ class HQQvLLMRollout(BaseRollout):
                 skip_modules=["lm_head"],
             ),
         )
-        # -------------------------
+        # -----------------------------------
 
         self.inference_engine = LLM(
             model=model_path,

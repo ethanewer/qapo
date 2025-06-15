@@ -253,7 +253,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
         return data.chunk(chunks=self.tp_size)[self.tp_rank]
 
     def update_params(self, updated_params, peft_config=None):
-        # ---------- NEW ----------
+        # --------------- NEW ---------------
         import logging
 
         from hqq.core.quantize import BaseQuantizeConfig
@@ -273,7 +273,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
 
         model = self.model_runner.model  # type: ignore
         tmp_model = type(model)(vllm_config=self.inference_engine.llm_engine.vllm_config)
-        # -------------------------
+        # -----------------------------------
 
         if peft_config:
             if self.base_sync_done:
@@ -300,7 +300,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
 
                 updated_params = {replace_lora_wrapper(k): v for k, v in updated_params.items()}
 
-        # ---------- NEW ----------
+        # --------------- NEW ---------------
         patch_vllm_moe_model_weight_loader(tmp_model)
         device = get_torch_device().current_device()  # used when fsdp2 set cpu_offload_policy
         loaded_params = tmp_model.load_weights(((name, param.to(device, non_blocking=True).full_tensor() if isinstance(param, DTensor) else param) for name, param in updated_params.items()))  # type: ignore
@@ -320,7 +320,7 @@ class HQQFSDPVLLMShardingManager(BaseShardingManager):
                     )
                 else:
                     param.data.copy_(state_dict[name].to(param.device, param.dtype))
-        # -------------------------
+        # -----------------------------------
 
         self.base_sync_done = True
         logger.info(f"vLLM load weights, loaded_params: {len(loaded_params) if loaded_params else -1}")

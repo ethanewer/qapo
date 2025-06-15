@@ -54,7 +54,7 @@ def run_generation(config) -> None:
             num_cpus=config.ray_init.num_cpus,
         )
 
-    ray.get(main_task.remote(config))
+    ray.get(main_task.remote(config))  # type: ignore
 
 
 @ray.remote(num_cpus=1)
@@ -83,7 +83,7 @@ def main_task(config):
     ray_cls_with_init = RayClassWithInitArgs(cls=ray.remote(ActorRolloutRefWorker), config=config, role="rollout")
     resource_pool = RayResourcePool(process_on_nodes=[config.trainer.n_gpus_per_node] * config.trainer.nnodes)
     wg = RayWorkerGroup(resource_pool=resource_pool, ray_cls_with_init=ray_cls_with_init, device_name="cuda" if is_cuda_available else "npu")
-    wg.init_model()
+    wg.init_model()  # type: ignore
 
     total_samples = len(dataset)
     config_batch_size = config.data.batch_size
@@ -114,7 +114,7 @@ def main_task(config):
         # START TO GENERATE FOR n_samples TIMES
         print(f"[{batch_idx + 1}/{num_batch}] Start to generate.")
         for n_sample in range(config.data.n_samples):
-            output_padded = wg.generate_sequences(data_padded)
+            output_padded = wg.generate_sequences(data_padded)  # type: ignore
             output = unpad_dataproto(output_padded, pad_size=pad_size)
 
             output_texts = []
@@ -142,4 +142,4 @@ def main_task(config):
 
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore

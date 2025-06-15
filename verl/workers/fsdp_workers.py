@@ -261,15 +261,19 @@ class ActorRolloutRefWorker(Worker):
                 lora_config = {"task_type": TaskType.CAUSAL_LM, "r": self.config.model.lora_rank, "lora_alpha": self.config.model.lora_alpha, "target_modules": convert_to_regular_types(self.config.model.target_modules), "bias": "none"}
                 actor_module = get_peft_model(actor_module, LoraConfig(**lora_config))
 
-            # ---------- NEW ----------
+            # --------------- NEW ---------------
             if fsdp_config.get("use_hqq_qat", False):
                 from verl.hqq_qat import replace_linear_with_fake_hqq
 
                 assert not self._is_lora, "LORA with HQQ QAT is not supported yet."
-                hqq_qat_config = fsdp_config.get("hqq_qat_config", None)
-                replace_linear_with_fake_hqq(actor_module, hqq_qat_config)
+                assert "hqq_qat_config" in fsdp_config, "actor_rollout_ref.actor.fsdp_config.hqq_qat_config must be provided if actor_rollout_ref.actor.fsdp_config.use_hqq_qat=True."
+                assert hasattr(actor_module, "lm_head") and hasattr(actor_module, "model"), "self.actor_module does not have expected structure."
+                assert isinstance(actor_module.model, torch.nn.Module)
+
+                hqq_qat_config = fsdp_config["hqq_qat_config"]
+                replace_linear_with_fake_hqq(actor_module.model, hqq_qat_config)
                 print("HQQ ROLLOUT CONFIG:", hqq_qat_config)
-            # -------------------------
+            # -----------------------------------
 
         torch.distributed.barrier()
 
@@ -435,6 +439,7 @@ class ActorRolloutRefWorker(Worker):
                 layered_summon=self.config.rollout.get("layered_summon", False),
             )
             log_gpu_memory_usage("After building sharding manager", logger=logger)
+        # --------------- NEW ---------------
         elif rollout_name == "vllm_hqq":
             from verl.workers.rollout.vllm_rollout import vllm_mode, vLLMRollout
             from verl.workers.sharding_manager.fsdp_hqq_vllm import HQQFSDPVLLMShardingManager
@@ -460,7 +465,7 @@ class ActorRolloutRefWorker(Worker):
                 layered_summon=self.config.rollout.get("layered_summon", False),
             )
             log_gpu_memory_usage("After building sharding manager", logger=logger)
-
+        # -----------------------------------
         elif rollout_name in ["sglang", "sglang_async"]:
             if rollout_name == "sglang_async":
                 warnings.warn(
@@ -618,6 +623,15 @@ class ActorRolloutRefWorker(Worker):
             # perform training
             with Timer(name="update_policy", logger=None) as timer:
                 metrics = self.actor.update_policy(data=data)
+                # --------------- NEW ---------------
+                if self._is_actor:
+                    fsdp_config = self.config.actor.fsdp_config
+                    if fsdp_config.get("use_hqq_qat", False):
+                        from verl.hqq_qat import clear_fake_hqq_quant_data
+
+                        assert hasattr(self.actor_module, "lm_head") and hasattr(self.actor_module, "model"), "self.actor_module does not have expected structure."
+                        clear_fake_hqq_quant_data(self.actor_module.model)
+                # -----------------------------------
             delta_time = timer.last
             global_num_tokens = data.meta_info["global_token_num"]
             estimated_flops, promised_flops = self.flops_counter.estimate_flops(global_num_tokens, delta_time)

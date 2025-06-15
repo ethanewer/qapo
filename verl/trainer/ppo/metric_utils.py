@@ -146,11 +146,11 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> Dict[str,
         **(
             {
                 # values
-                "critic/values/mean": torch.mean(valid_values).detach().item(),
-                "critic/values/max": torch.max(valid_values).detach().item(),
-                "critic/values/min": torch.min(valid_values).detach().item(),
+                "critic/values/mean": torch.mean(valid_values).detach().item(),  # type: ignore
+                "critic/values/max": torch.max(valid_values).detach().item(),  # type: ignore
+                "critic/values/min": torch.min(valid_values).detach().item(),  # type: ignore
                 # vf explained var
-                "critic/vf_explained_var": (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),
+                "critic/vf_explained_var": (1.0 - return_diff_var / (return_var + 1e-5)).detach().item(),  # type: ignore
             }
             if use_critic
             else {}
@@ -281,8 +281,8 @@ def bootstrap_metric(
         bootstrap_idxs = np.random.choice(len(data), size=subset_size, replace=True)
         bootstrap_data = [data[i] for i in bootstrap_idxs]
         for i, reduce_fn in enumerate(reduce_fns):
-            bootstrap_metric_lsts[i].append(reduce_fn(bootstrap_data))
-    return [(np.mean(lst), np.std(lst)) for lst in bootstrap_metric_lsts]
+            bootstrap_metric_lsts[i].append(reduce_fn(bootstrap_data))  # type: ignore
+    return [(np.mean(lst), np.std(lst)) for lst in bootstrap_metric_lsts]  # type: ignore
 
 
 def calc_maj_val(data: list[dict[str, Any]], vote_key: str, val_key: str) -> float:
@@ -314,7 +314,7 @@ def calc_maj_val(data: list[dict[str, Any]], vote_key: str, val_key: str) -> flo
         vote2vals[d[vote_key]].append(d[val_key])
 
     vote2cnt = {k: len(v) for k, v in vote2vals.items()}
-    maj_vote = max(vote2cnt, key=vote2cnt.get)
+    maj_vote = max(vote2cnt, key=vote2cnt.get)  # type: ignore
 
     maj_val = vote2vals[maj_vote][0]
 
@@ -402,7 +402,7 @@ def process_validation_metrics(data_sources: list[str], sample_inputs: list[str]
                             [(maj_n_mean, maj_n_std)] = bootstrap_metric(
                                 data=vote_data,
                                 subset_size=n,
-                                reduce_fns=[partial(calc_maj_val, vote_key="pred", val_key="val")],
+                                reduce_fns=[partial(calc_maj_val, vote_key="pred", val_key="val")],  # type: ignore
                                 seed=seed,
                             )
                             metric[f"maj@{n}/mean"], metric[f"maj@{n}/std"] = maj_n_mean, maj_n_std
@@ -421,6 +421,6 @@ def process_validation_metrics(data_sources: list[str], sample_inputs: list[str]
     for data_source, var2metric2prompt_vals in data_src2var2metric2prompt_vals.items():
         for var_name, metric2prompt_vals in var2metric2prompt_vals.items():
             for metric_name, prompt_vals in metric2prompt_vals.items():
-                data_src2var2metric2val[data_source][var_name][metric_name] = np.mean(prompt_vals)
+                data_src2var2metric2val[data_source][var_name][metric_name] = np.mean(prompt_vals)  # type: ignore
 
-    return data_src2var2metric2val
+    return data_src2var2metric2val  # type: ignore
