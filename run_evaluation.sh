@@ -1,3 +1,4 @@
+#!/bin/bash
 set -x
 
 # HQQ configuration
@@ -17,8 +18,7 @@ else
     rollout_name="vllm"
 fi
 
-# If you are using vllm<=0.6.3, you might need to set the following environment variable to avoid bugs:
-# export VLLM_ATTENTION_BACKEND=XFORMERS
+CHECKPOINT_DIR="path/to/your/checkpoints" 
 
 gsm8k_train_path=$HOME/data/gsm8k/train.parquet
 gsm8k_test_path=$HOME/data/gsm8k/test.parquet
@@ -28,17 +28,17 @@ math_test_path=$HOME/data/math/test.parquet
 train_files="['$gsm8k_train_path', '$math_train_path']"
 test_files="['$gsm8k_test_path', '$math_test_path']"
 
-python3 -m verl.trainer.main_ppo \
+python3 -m scripts.evaluate_checkpoints \
     algorithm.adv_estimator=grpo \
     algorithm.use_kl_in_reward=False \
-    data.train_files="$train_files" \
+    data.train_files="[]" \
     data.val_files="$test_files" \
     data.train_batch_size=1024 \
     data.max_prompt_length=1024 \
     data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
-    actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
+    actor_rollout_ref.model.path=Qwen/Qwen2.5-3B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
     actor_rollout_ref.actor.ppo_mini_batch_size=256 \
@@ -66,9 +66,10 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qapo_gsm8k_math' \
-    trainer.experiment_name='test_run' \
+    trainer.experiment_name='qwen2_5_3b_qapo_4bit_quantized_evaluation' \
     trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
-    trainer.test_freq=1 \
-    trainer.total_epochs=15 $@
+    trainer.test_freq=5 \
+    trainer.total_epochs=15
+    checkpoint_dir=$CHECKPOINT_DIR $@ 

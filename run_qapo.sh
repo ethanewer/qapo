@@ -1,5 +1,22 @@
 set -x
 
+# HQQ configuration
+use_hqq_rollout=True
+hqq_weight_bits=4
+use_hqq_qat=True
+optimize_hqq_qat=False
+
+if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
+    echo "Error: use_hqq_rollout must be either True or False" >&2
+    exit 1
+fi
+
+if [ "$use_hqq_rollout" = "True" ]; then
+    rollout_name="vllm_hqq"
+else
+    rollout_name="vllm"
+fi
+
 # If you are using vllm<=0.6.3, you might need to set the following environment variable to avoid bugs:
 # export VLLM_ATTENTION_BACKEND=XFORMERS
 
@@ -40,11 +57,11 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.n=8 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=8 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
-    actor_rollout_ref.rollout.name=vllm_hqq \
-    actor_rollout_ref.rollout.hqq_config.weight_bits=4 \
-    actor_rollout_ref.actor.fsdp_config.use_hqq_qat=True \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=4 \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=False \
+    actor_rollout_ref.rollout.name=$rollout_name \
+    actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \
+    actor_rollout_ref.actor.fsdp_config.use_hqq_qat=$use_hqq_qat \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=$hqq_weight_bits \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=$optimize_hqq_qat \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
