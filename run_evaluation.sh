@@ -1,7 +1,9 @@
 set -x
 
-CHECKPOINT_RUN_NAME="qwen2_5_3b_grpo"
-CHECKPOINT_DIR="qapo/checkpoints/qapo_gsm8k_math/${CHECKPOINT_RUN_NAME}" 
+model="Qwen/Qwen2.5-3B-Instruct"
+
+checkpoint_run_name="qwen2_5_3b_grpo"
+checkpoint_dir="/home/jovyan/qapo/checkpoints/qapo_gsm8k_math/${checkpoint_run_name}" 
 
 # HQQ configuration
 use_hqq_rollout=True
@@ -18,7 +20,7 @@ else
 fi
 
 # Set experiment name
-experiment_name="${CHECKPOINT_RUN_NAME}_eval"
+experiment_name="${checkpoint_run_name}_eval"
 if [ "$use_hqq_rollout" = "True" ]; then
     experiment_name="${experiment_name}_${hqq_weight_bits}bit_quantization"
 else
@@ -37,7 +39,7 @@ test_files="['$gsm8k_test_path', '$math_test_path']"
 python3 -m scripts.evaluate_checkpoints \
     algorithm.adv_estimator=grpo \
     algorithm.use_kl_in_reward=False \
-    data.train_files="[]" \
+    data.train_files="$train_files" \
     data.val_files="$test_files" \
     data.train_batch_size=1024 \
     data.max_prompt_length=1024 \
@@ -74,5 +76,5 @@ python3 -m scripts.evaluate_checkpoints \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
     trainer.test_freq=5 \
-    trainer.total_epochs=15
-    checkpoint_dir=$CHECKPOINT_DIR $@ 
+    trainer.total_epochs=15 \
+    +checkpoint_dir=$checkpoint_dir "$@" 
