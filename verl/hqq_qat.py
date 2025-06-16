@@ -44,6 +44,10 @@ class FakeHQQLinear(nn.Linear):
                     compute_dtype=input.dtype,
                     **self.fake_hqq_data.quant_config,
                 )
+                for key in self.fake_hqq_data.quant_data:
+                    value = self.fake_hqq_data.quant_data[key]
+                    if isinstance(value, torch.Tensor):
+                        self.fake_hqq_data.quant_data[key] = value.to(self.weight.dtype)
 
             assert self.fake_hqq_data.quant_data is not None
 
