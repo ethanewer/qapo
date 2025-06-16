@@ -623,15 +623,7 @@ class ActorRolloutRefWorker(Worker):
             # perform training
             with Timer(name="update_policy", logger=None) as timer:
                 metrics = self.actor.update_policy(data=data)
-                # --------------- NEW ---------------
-                if self._is_actor:
-                    fsdp_config = self.config.actor.fsdp_config
-                    if fsdp_config.get("use_hqq_qat", False):
-                        from verl.hqq_qat import clear_fake_hqq_quant_data
 
-                        assert hasattr(self.actor_module, "lm_head") and hasattr(self.actor_module, "model"), "self.actor_module does not have expected structure."
-                        clear_fake_hqq_quant_data(self.actor_module.model)
-                # -----------------------------------
             delta_time = timer.last
             global_num_tokens = data.meta_info["global_token_num"]
             estimated_flops, promised_flops = self.flops_counter.estimate_flops(global_num_tokens, delta_time)

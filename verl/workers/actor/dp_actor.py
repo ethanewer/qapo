@@ -435,6 +435,16 @@ class DataParallelPPOActor(BasePPOActor):
 
                 grad_norm = self._optimizer_step()
                 data = {"actor/grad_norm": grad_norm.detach().item()}
+                # --------------- NEW ---------------
+                if self._is_actor:
+                    fsdp_config = self.config.fsdp_config
+                    if fsdp_config.get("use_hqq_qat", False):
+                        from verl.hqq_qat import clear_fake_hqq_quant_data
+
+                        assert hasattr(self.actor_module, "lm_head") and hasattr(self.actor_module, "model"), "self.actor_module does not have expected structure."
+                        clear_fake_hqq_quant_data(self.actor_module.model)
+                # -----------------------------------
+
                 append_to_dict(metrics, data)
         self.actor_optimizer.zero_grad()
         return metrics
