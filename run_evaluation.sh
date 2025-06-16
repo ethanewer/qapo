@@ -11,12 +11,6 @@ hqq_weight_bits=4
 if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
     echo "Error: use_hqq_rollout must be either True or False" && exit 1
 fi
-if [ "$use_hqq_qat" != "True" ] && [ "$use_hqq_qat" != "False" ]; then
-    echo "Error: use_hqq_qat must be either True or False" && exit 1
-fi
-if [ "$optimize_hqq_qat" != "True" ] && [ "$optimize_hqq_qat" != "False" ]; then
-    echo "Error: optimize_hqq_qat must be either True or False" && exit 1
-fi
 if [ "$use_hqq_rollout" = "True" ]; then
     rollout_name="vllm_hqq"
 else
