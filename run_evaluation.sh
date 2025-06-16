@@ -1,14 +1,11 @@
 set -x
 
-CHECKPOINT_DIR="path/to/your/checkpoints" 
+CHECKPOINT_RUN_NAME="qwen2_5_3b_grpo"
+CHECKPOINT_DIR="qapo/checkpoints/qapo_gsm8k_math/${CHECKPOINT_RUN_NAME}" 
 
 # HQQ configuration
 use_hqq_rollout=True
 hqq_weight_bits=4
-use_hqq_qat=False
-optimize_hqq_qat=False
-
-model="Qwen/Qwen2.5-3B-Instruct"
 
 # Validate HQQ configuration
 if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
@@ -27,20 +24,11 @@ else
 fi
 
 # Set experiment name
-experiment_name=$(echo "${model#*/}" | sed 's/[.-]/_/g' | tr '[:upper:]' '[:lower:]')
-if [ "$use_hqq_qat" = "True" ]; then
-    if [ "$optimize_hqq_qat" = "True" ]; then
-        experiment_name="${experiment_name}_optimized"
-    fi
-    experiment_name="${experiment_name}_qat"
-fi
+experiment_name="${CHECKPOINT_RUN_NAME}_eval"
 if [ "$use_hqq_rollout" = "True" ]; then
-    experiment_name="${experiment_name}_qapo"
-fi
-if [ "$use_hqq_rollout" = "True" ] || [ "$use_hqq_qat" = "True" ]; then
-    experiment_name="${experiment_name}_${hqq_weight_bits}bit_eval"
+    experiment_name="${experiment_name}_${hqq_weight_bits}bit_quantization"
 else
-    experiment_name="${experiment_name}_grpo_eval"
+    experiment_name="${experiment_name}_full_precision"
 fi
 
 # Data paths
@@ -83,9 +71,6 @@ python3 -m scripts.evaluate_checkpoints \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.name=$rollout_name \
     actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \
-    actor_rollout_ref.actor.fsdp_config.use_hqq_qat=$use_hqq_qat \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=$hqq_weight_bits \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=$optimize_hqq_qat \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \

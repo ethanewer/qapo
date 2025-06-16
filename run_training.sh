@@ -3,8 +3,8 @@ set -x
 # HQQ configuration
 use_hqq_rollout=True
 hqq_weight_bits=4
-use_hqq_qat=False
-optimize_hqq_qat=False
+use_hqq_qat=True
+optimize_hqq_qat=True
 
 model="Qwen/Qwen2.5-3B-Instruct"
 

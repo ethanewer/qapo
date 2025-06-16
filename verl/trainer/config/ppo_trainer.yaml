@@ -247,7 +247,7 @@ actor_rollout_ref:
         group_size: 64
         axis: 1
         round_zero: true
-        optimize: false
+        optimize: true
         bitpack: false
 
       # policy for wrapping the model
