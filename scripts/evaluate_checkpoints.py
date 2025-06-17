@@ -17,12 +17,6 @@ def main(config):
 
     checkpoint_dir = config.checkpoint_dir
 
-    checkpoint_run_name = "qwen2_5_3b_grpo"
-    true_checkpoint_dir = f"/home/jovyan/qapo/checkpoints/qapo_gsm8k_math/{checkpoint_run_name}"
-    print(f"{checkpoint_dir=}, {(checkpoint_dir == true_checkpoint_dir)=}")
-    checkpoint_paths = sorted(glob.glob(os.path.join(checkpoint_dir, "global_step_*")))
-    print(f"Found {len(checkpoint_paths)} checkpoints in {checkpoint_dir}")
-
     if not ray.is_initialized():
         ray.init(
             runtime_env={"env_vars": {"TOKENIZERS_PARALLELISM": "true", "NCCL_DEBUG": "WARN", "VLLM_LOGGING_LEVEL": "WARN"}},
@@ -40,6 +34,9 @@ class TaskRunner:
     def run(self, config, checkpoint_dir):
         from verl.utils import hf_processor, hf_tokenizer
         from verl.utils.fs import copy_to_local
+
+        print(config.rollout.hqq_config)
+        print(f"{config.rollout.hqq_config.weight_bits=}")
 
         local_path = copy_to_local(config.actor_rollout_ref.model.path, use_shm=config.actor_rollout_ref.model.get("use_shm", False))
         tokenizer = hf_tokenizer(local_path, trust_remote_code=config.data.get("trust_remote_code", False))
@@ -98,7 +95,10 @@ class TaskRunner:
             config=OmegaConf.to_container(config, resolve=True),
         )
 
-        checkpoint_paths = sorted(glob.glob(os.path.join(checkpoint_dir, "global_step_*")))
+        checkpoint_paths = sorted(
+            glob.glob(os.path.join(checkpoint_dir, "global_step_*")),
+            key=lambda path: int(path.split("_")[-1]),
+        )
 
         print(f"Found {len(checkpoint_paths)} checkpoints in {checkpoint_dir}")
 

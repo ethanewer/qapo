@@ -69,7 +69,7 @@ python3 -m scripts.evaluate_checkpoints \
     actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
-    trainer.logger=['console','wandb'] \
+    trainer.logger=['console','tensorboard'] \
     trainer.project_name='qapo_gsm8k_math' \
     trainer.experiment_name="$experiment_name" \
     trainer.n_gpus_per_node=2 \
