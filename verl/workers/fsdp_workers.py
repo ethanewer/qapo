@@ -238,7 +238,7 @@ class ActorRolloutRefWorker(Worker):
 
             # Apply Liger kernel to the model if use_liger is set to True
             if use_liger:
-                from liger_kernel.transformers.monkey_patch import _apply_liger_kernel_to_instance
+                from liger_kernel.transformers.monkey_patch import _apply_liger_kernel_to_instance  # type: ignore
 
                 _apply_liger_kernel_to_instance(model=actor_module)
 
@@ -1273,7 +1273,7 @@ class RewardModelWorker(Worker):
 
     def _forward_micro_batch(self, micro_batch):
         if is_cuda_available:
-            from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+            from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input  # type: ignore
         elif is_npu_available:
             from transformers.integrations.npu_flash_attention import index_first_axis, pad_input, rearrange, unpad_input
 

@@ -86,7 +86,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=$optimize_hqq_qat \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
-    trainer.logger=['console','wandb'] \
+    trainer.logger=['console','tensorboard'] \
     trainer.project_name='qapo_gsm8k_math' \
     trainer.experiment_name="$experiment_name" \
     trainer.n_gpus_per_node=2 \

@@ -150,17 +150,17 @@ class HQQvLLMRollout(BaseRollout):
         from hqq.utils.vllm import set_vllm_onthefly_hqq_quant
 
         set_vllm_onthefly_hqq_quant(
-            weight_bits=self.config.get("hqq_config.weight_bits", 4),
-            group_size=self.config.get("hqq_config.group_size", 64),
-            quant_mode=self.config.get("hqq_config.quant_mode", "static"),
+            weight_bits=self.config.hqq_config.weight_bits,
+            group_size=self.config.hqq_config.group_size,
+            quant_mode=self.config.hqq_config.quant_mode,
             skip_modules=["lm_head"],
         )
         print(
             "HQQ ROLLOUT CONFIG:",
             dict(
-                weight_bits=self.config.get("hqq_config.weight_bits", 4),
-                group_size=self.config.get("hqq_config.group_size", 64),
-                quant_mode=self.config.get("hqq_config.quant_mode", "static"),
+                weight_bits=self.config.hqq_config.weight_bits,
+                group_size=self.config.hqq_config.group_size,
+                quant_mode=self.config.hqq_config.quant_mode,
                 skip_modules=["lm_head"],
             ),
         )

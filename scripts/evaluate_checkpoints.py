@@ -1,5 +1,6 @@
 import glob
 import os
+import pprint
 
 import hydra  # type: ignore
 import ray  # type: ignore
@@ -11,10 +12,8 @@ from verl.trainer.ppo.reward import load_reward_manager
 from verl.utils.tracking import Tracking
 
 
-@hydra.main(config_path="../verl/trainer/config", config_name="ppo_trainer")
+@hydra.main(config_path="../verl/trainer/config", config_name="ppo_trainer", version_base=None)
 def main(config):
-    OmegaConf.resolve(config)
-
     checkpoint_dir = config.checkpoint_dir
 
     if not ray.is_initialized():
@@ -35,8 +34,11 @@ class TaskRunner:
         from verl.utils import hf_processor, hf_tokenizer
         from verl.utils.fs import copy_to_local
 
-        print(config.rollout.hqq_config)
-        print(f"{config.rollout.hqq_config.weight_bits=}")
+        pprint(OmegaConf.to_container(config, resolve=True))
+        OmegaConf.resolve(config)
+
+        print(config.actor_rollout_ref.rollout.hqq_config)
+        print(f"{config.actor_rollout_ref.rollout.hqq_config.weight_bits=}")
 
         local_path = copy_to_local(config.actor_rollout_ref.model.path, use_shm=config.actor_rollout_ref.model.get("use_shm", False))
         tokenizer = hf_tokenizer(local_path, trust_remote_code=config.data.get("trust_remote_code", False))
