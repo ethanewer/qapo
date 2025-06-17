@@ -1,6 +1,6 @@
 import glob
 import os
-import pprint
+from pprint import pprint
 
 import hydra  # type: ignore
 import ray  # type: ignore
@@ -14,7 +14,7 @@ from verl.utils.tracking import Tracking
 
 @hydra.main(config_path="../verl/trainer/config", config_name="ppo_trainer", version_base=None)
 def main(config):
-    checkpoint_dir = config.checkpoint_dir
+    checkpoint_dir = config.checkpoint_eval.checkpoint_dir
 
     if not ray.is_initialized():
         ray.init(

@@ -845,3 +845,6 @@ ray_init:
 
   # Path to save Ray timeline JSON for performance profiling
   timeline_json_file: null
+
+checkpoint_eval:
+  checkpoint_dir: qapo/checkpoints/qapo_gsm8k_math/

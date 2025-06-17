@@ -77,4 +77,4 @@ python3 -m scripts.evaluate_checkpoints \
     trainer.save_freq=10 \
     trainer.test_freq=5 \
     trainer.total_epochs=15 \
-    +checkpoint_dir=$checkpoint_dir "$@" 
+    checkpoint_eval.checkpoint_dir=$checkpoint_dir "$@" 
