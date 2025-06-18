@@ -682,6 +682,17 @@ class ActorRolloutRefWorker(Worker):
         output.meta_info["timing"] = timing_generate
         output = output.to("cpu")
 
+        # --------------- NEW ---------------
+        fsdp_config = self.config.actor.fsdp_config
+        if fsdp_config.get("use_hqq_qat", False) and fsdp_config.hqq_qat_config.update_metadata == "rollout":
+            from verl.hqq_qat import update_hf_metadata_from_vllm
+
+            update_hf_metadata_from_vllm(
+                self.actor_module,
+                self.rollout.inference_engine.llm_engine.model_executor.driver_worker.worker.model_runner.model,
+            )
+        # -----------------------------------
+
         # clear kv cache
         get_torch_device().empty_cache()
         return output

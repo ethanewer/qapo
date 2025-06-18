@@ -249,6 +249,7 @@ actor_rollout_ref:
         round_zero: true
         optimize: true
         bitpack: false
+        update_metadata: rollout  # update QAT metadata when 'rollout' or 'actor' metadata is updated
 
       # policy for wrapping the model
       wrap_policy:
