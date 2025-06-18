@@ -675,6 +675,12 @@ class ActorRolloutRefWorker(Worker):
 
             output = self.rollout_sharding_manager.postprocess_data(output)
 
+            # --------------- NEW ---------------
+            fsdp_config = self.config.actor.fsdp_config
+            if fsdp_config.get("use_hqq_qat", False) and fsdp_config.hqq_qat_config.update_metadata == "rollout":
+                self.update_hf_metadata_from_vllm()
+            # -----------------------------------
+
         timing_generate.update(self.rollout_sharding_manager.timing)
         # We calculate the average timing across all ranks
         # to make sure meta_info["timing"] is the same
@@ -682,20 +688,82 @@ class ActorRolloutRefWorker(Worker):
         output.meta_info["timing"] = timing_generate
         output = output.to("cpu")
 
-        # --------------- NEW ---------------
-        fsdp_config = self.config.actor.fsdp_config
-        if fsdp_config.get("use_hqq_qat", False) and fsdp_config.hqq_qat_config.update_metadata == "rollout":
-            from verl.hqq_qat import update_hf_metadata_from_vllm
-
-            update_hf_metadata_from_vllm(
-                self.actor_module,
-                self.rollout.inference_engine.llm_engine.model_executor.driver_worker.worker.model_runner.model,
-            )
-        # -----------------------------------
-
         # clear kv cache
         get_torch_device().empty_cache()
         return output
+
+    # --------------- NEW ---------------
+    def update_hf_metadata_from_vllm(self) -> None:
+        from verl.hqq_qat import FakeHQQData
+
+        hf_model = self.actor_module
+        vllm_model = self.rollout.inference_engine.llm_engine.model_executor.driver_worker.worker.model_runner.model
+        metadata = {}
+        for name, _ in vllm_model.named_parameters():
+            if name[-len(".W_q") :] == ".W_q":
+                quant_layer_name = name[: -len(".W_q")]
+                quant_layer = vllm_model.get_submodule(quant_layer_name)
+
+                scale = quant_layer.meta["scale"].detach().clone()
+                zero = quant_layer.meta["zero"].detach().clone()
+
+                if "qkv_proj" in quant_layer_name:
+                    qkv_linear_layer = vllm_model.get_submodule(quant_layer_name[: -len(".quant_layer")])
+                    num_heads = qkv_linear_layer.num_heads
+                    num_kv_heads = qkv_linear_layer.num_kv_heads
+                    num_total_heads = num_heads + 2 * num_kv_heads
+
+                    n = scale.shape[0] // num_total_heads
+                    assert scale.shape[0] == num_total_heads * n and zero.shape[0] == num_total_heads * n
+
+                    q_proj_scale = scale[: n * num_heads]
+                    k_proj_scale = scale[n * num_heads : n * (num_heads + num_kv_heads)]
+                    v_proj_scale = scale[n * (num_heads + num_kv_heads) :]
+
+                    q_proj_zero = zero[: n * num_heads]
+                    k_proj_zero = zero[n * num_heads : n * (num_heads + num_kv_heads)]
+                    v_proj_zero = zero[n * (num_heads + num_kv_heads) :]
+
+                    metadata[quant_layer_name.replace("qkv_proj", "q_proj").replace(".quant_layer", "")] = {
+                        "scale": q_proj_scale,
+                        "zero": q_proj_zero,
+                    }
+                    metadata[quant_layer_name.replace("qkv_proj", "k_proj").replace(".quant_layer", "")] = {
+                        "scale": k_proj_scale,
+                        "zero": k_proj_zero,
+                    }
+                    metadata[quant_layer_name.replace("qkv_proj", "v_proj").replace(".quant_layer", "")] = {
+                        "scale": v_proj_scale,
+                        "zero": v_proj_zero,
+                    }
+                elif "gate_up_proj" in quant_layer_name:
+                    n = scale.shape[0] // 2
+                    assert 2 * n == scale.shape[0] and 2 * n == zero.shape[0]
+
+                    gate_proj_scale = scale[:n]
+                    up_proj_scale = scale[n:]
+
+                    gate_proj_zero = zero[:n]
+                    up_proj_zero = zero[n:]
+
+                    metadata[quant_layer_name.replace("gate_up_proj", "gate_proj").replace(".quant_layer", "")] = {
+                        "scale": gate_proj_scale,
+                        "zero": gate_proj_zero,
+                    }
+                    metadata[quant_layer_name.replace("gate_up_proj", "up_proj").replace(".quant_layer", "")] = {
+                        "scale": up_proj_scale,
+                        "zero": up_proj_zero,
+                    }
+                else:
+                    metadata[quant_layer_name.replace(".quant_layer", "")] = {"scale": scale, "zero": zero}
+
+        for name, quant_data in metadata.items():
+            linear = hf_model.get_submodule(name)
+            assert hasattr(linear, "fake_hqq_data")
+            assert isinstance(linear.fake_hqq_data, FakeHQQData)
+            linear.fake_hqq_data.quant_data = quant_data
+
+    # -----------------------------------
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
     def compute_log_prob(self, data: DataProto):
