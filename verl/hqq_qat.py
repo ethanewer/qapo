@@ -30,18 +30,37 @@ class FakeHQQData:
     quant_config: dict[str, Any]
     update_metadata: str
     max_quantized_value: float
-    scale: Optional[Tensor] = None
-    zero: Optional[Tensor] = None
+    _scale_ema: Optional[Tensor] = None
+    _zero_ema: Optional[Tensor] = None
     beta: float = 0.0
     use_qat: bool = True
+    num_updates: int = 0
+
+    @property
+    def scale(self) -> Optional[Tensor]:
+        if self._scale_ema is None:
+            return None
+
+        bias_correction = 1 - self.beta**self.num_updates
+        return self._scale_ema / bias_correction
+
+    @property
+    def zero(self) -> Optional[Tensor]:
+        if self._zero_ema is None:
+            return None
+
+        bias_correction = 1 - self.beta**self.num_updates
+        return self._zero_ema / bias_correction
 
     def update(self, new_scale: Tensor, new_zero: Tensor) -> None:
-        if self.scale is None or self.zero is None:
-            self.scale = new_scale
-            self.zero = new_zero
-        else:
-            self.scale = self.beta * self.scale + (1 - self.beta) * new_scale
-            self.zero = self.beta * self.zero + (1 - self.beta) * new_zero
+        self.num_updates += 1
+
+        if self._scale_ema is None or self._zero_ema is None:
+            self._scale_ema = torch.zeros_like(new_scale)
+            self._zero_ema = torch.zeros_like(new_zero)
+
+        self._scale_ema = self.beta * self._scale_ema + (1.0 - self.beta) * new_scale
+        self._zero_ema = self.beta * self._zero_ema + (1.0 - self.beta) * new_zero
 
 
 class FakeHQQLinear(nn.Linear):
