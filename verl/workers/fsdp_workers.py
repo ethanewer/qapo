@@ -763,8 +763,7 @@ class ActorRolloutRefWorker(Worker):
             linear = hf_model.get_submodule(name)
             assert hasattr(linear, "fake_hqq_data")
             assert isinstance(linear.fake_hqq_data, FakeHQQData)
-            linear.fake_hqq_data.scale = quant_data["scale"]
-            linear.fake_hqq_data.zero = quant_data["zero"]
+            linear.fake_hqq_data.update(quant_data["scale"], quant_data["zero"])
 
     # -----------------------------------
 
