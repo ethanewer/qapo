@@ -75,7 +75,7 @@ class FakeHQQLinear(nn.Linear):
 
             return F.linear(input, fake_quantized_weight.view(self.weight.shape), self.bias)
         else:
-            return F.linear(input, self.weight.shape, self.bias)
+            return F.linear(input, self.weight, self.bias)
 
 
 def patch_linear_with_fake_hqq(

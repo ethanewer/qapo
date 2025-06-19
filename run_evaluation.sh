@@ -2,7 +2,7 @@ set -x
 
 model="Qwen/Qwen2.5-1.5B-Instruct"
 
-checkpoint_run_name="qwen2_5_1_5b_grpo"
+checkpoint_run_name="qwen2_5_1_5b_instruct_grpo"
 checkpoint_dir="/home/jovyan/qapo/checkpoints/qapo_gsm8k_math/${checkpoint_run_name}" 
 
 # HQQ configuration

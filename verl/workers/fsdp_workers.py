@@ -274,7 +274,7 @@ class ActorRolloutRefWorker(Worker):
                     module=actor_module.model,
                     hqq_qat_config=fsdp_config.hqq_qat_config,
                 )
-                print("HQQ ROLLOUT CONFIG:", fsdp_config.hqq_qat_config, f"{fsdp_config.update_metadata=}")
+                print("HQQ QAT CONFIG:", fsdp_config.hqq_qat_config)
             # -----------------------------------
 
         torch.distributed.barrier()
