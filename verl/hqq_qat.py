@@ -71,8 +71,8 @@ class FakeHQQLinear(nn.Linear):
         with torch.no_grad():
             _, metadata = Quantizer.quantize(
                 self.weight.detach(),
-                device=input.device,
-                compute_dtype=input.dtype,
+                device=self.weight.device,
+                compute_dtype=self.weight.dtype,
                 **self.fake_hqq_data.quant_config,
             )
             self.fake_hqq_data.update(metadata["scale"].to(self.weight.dtype), metadata["zero"].to(self.weight.dtype))
