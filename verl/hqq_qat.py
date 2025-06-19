@@ -105,10 +105,7 @@ def patch_linear_with_fake_hqq(
         quant_config=hqq_qat_config["quant_config"],
         update_metadata=hqq_qat_config["update_metadata"],
         max_quantized_value=round(2 ** hqq_qat_config["quant_config"]["nbits"] - 1),
-        scale=None,
-        zero=None,
         beta=hqq_qat_config["beta"],
-        use_qat=True,
     )
     linear.forward = FakeHQQLinear.forward.__get__(linear, type(linear))
 
