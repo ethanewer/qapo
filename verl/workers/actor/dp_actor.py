@@ -458,10 +458,10 @@ class DataParallelPPOActor(BasePPOActor):
                 # --------------- NEW ---------------
                 fsdp_config = self.config.fsdp_config
                 if fsdp_config.get("use_hqq_qat", False) and fsdp_config.hqq_qat_config.update_metadata == "actor":
-                    from verl.hqq_qat import clear_fake_hqq_quant_data
+                    from verl.hqq_qat import update_hqq_quant_data
 
                     assert hasattr(self.actor_module, "lm_head") and hasattr(self.actor_module, "model"), "self.actor_module does not have expected structure."
-                    clear_fake_hqq_quant_data(self.actor_module.model)
+                    update_hqq_quant_data(self.actor_module.model)
                 # -----------------------------------
 
                 append_to_dict(metrics, data)

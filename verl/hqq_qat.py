@@ -66,19 +66,21 @@ class FakeHQQData:
 class FakeHQQLinear(nn.Linear):
     fake_hqq_data: FakeHQQData
 
+    def update(self) -> None:
+        assert self.fake_hqq_data.update_metadata == "actor"
+        with torch.no_grad():
+            _, metadata = Quantizer.quantize(
+                self.weight.detach(),
+                device=input.device,
+                compute_dtype=input.dtype,
+                **self.fake_hqq_data.quant_config,
+            )
+            self.fake_hqq_data.update(metadata["scale"].to(self.weight.dtype), metadata["zero"].to(self.weight.dtype))
+
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.fake_hqq_data.use_qat:
             if self.fake_hqq_data.scale is None or self.fake_hqq_data.zero is None:
-                assert self.fake_hqq_data.update_metadata == "actor"
-
-                with torch.no_grad():
-                    _, metadata = Quantizer.quantize(
-                        self.weight.detach(),
-                        device=input.device,
-                        compute_dtype=input.dtype,
-                        **self.fake_hqq_data.quant_config,
-                    )
-                    self.fake_hqq_data.update(metadata["scale"].to(self.weight.dtype), metadata["zero"].to(self.weight.dtype))
+                self.update()
 
             if self.fake_hqq_data.quant_config["axis"] == 1:
                 weight = self.weight.view(-1, self.fake_hqq_data.quant_config["group_size"])
@@ -108,6 +110,7 @@ def patch_linear_with_fake_hqq(
         beta=hqq_qat_config["beta"],
     )
     linear.forward = FakeHQQLinear.forward.__get__(linear, type(linear))
+    linear.update = FakeHQQLinear.update.__get__(linear, type(linear))
 
 
 def replace_linear_with_fake_hqq(
@@ -121,15 +124,14 @@ def replace_linear_with_fake_hqq(
             replace_linear_with_fake_hqq(child, hqq_qat_config)
 
 
-def clear_fake_hqq_quant_data(module: nn.Module) -> None:
+def update_hqq_quant_data(module: nn.Module) -> None:
     for child in list(module.children()):
         if isinstance(child, nn.Linear):
             if hasattr(child, "fake_hqq_data"):
                 assert isinstance(child.fake_hqq_data, FakeHQQData)
-                child.fake_hqq_data.scale = None
-                child.fake_hqq_data.zero = None
+                child.update()
         else:
-            clear_fake_hqq_quant_data(child)
+            update_hqq_quant_data(child)
 
 
 def enable_hqq_qat(module: nn.Module) -> None:
