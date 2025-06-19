@@ -1,8 +1,8 @@
 set -x
 
-model="Qwen/Qwen2.5-3B-Instruct"
+model="Qwen/Qwen2.5-1.5B-Instruct"
 
-checkpoint_run_name="qwen2_5_3b_grpo"
+checkpoint_run_name="qwen2_5_1_5b_grpo"
 checkpoint_dir="/home/jovyan/qapo/checkpoints/qapo_gsm8k_math/${checkpoint_run_name}" 
 
 # HQQ configuration
@@ -42,8 +42,8 @@ python3 -m scripts.evaluate_checkpoints \
     data.train_files="$train_files" \
     data.val_files="$test_files" \
     data.train_batch_size=1024 \
-    data.max_prompt_length=1024 \
-    data.max_response_length=1024 \
+    data.max_prompt_length=2048 \
+    data.max_response_length=2048 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     actor_rollout_ref.model.path=$model \
@@ -59,12 +59,12 @@ python3 -m scripts.evaluate_checkpoints \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
     actor_rollout_ref.actor.checkpoint.contents=['model','optimizer','extra','hf_model'] \
-    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=8 \
+    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=32 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.75 \
     actor_rollout_ref.rollout.max_num_batched_tokens=16384 \
     actor_rollout_ref.rollout.n=8 \
-    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=8 \
+    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=32 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.name=$rollout_name \
     actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \

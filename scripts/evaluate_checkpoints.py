@@ -106,6 +106,10 @@ class TaskRunner:
 
         all_metrics = {}
 
+        val_metrics = trainer._validate()
+        all_metrics[0] = val_metrics
+        logger.log(data=val_metrics, step=0)
+
         for checkpoint_path in checkpoint_paths:
             print(f"--- Evaluating checkpoint: {checkpoint_path} ---")
 
@@ -113,7 +117,6 @@ class TaskRunner:
 
             trainer.actor_rollout_wg.load_checkpoint(actor_checkpoint_path)
 
-            print("Starting validation")
             val_metrics = trainer._validate()
 
             global_step = int(os.path.basename(checkpoint_path).split("_")[-1])

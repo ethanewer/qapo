@@ -4,9 +4,9 @@ set -x
 use_hqq_rollout=True
 hqq_weight_bits=4
 use_hqq_qat=True
-optimize_hqq_qat=True
+update_hqq_qat_metadata=rollout
 
-model="Qwen/Qwen2.5-3B-Instruct"
+model="Qwen/Qwen2.5-1.5B-Instruct"
 
 # Validate HQQ configuration
 if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
@@ -14,9 +14,6 @@ if [ "$use_hqq_rollout" != "True" ] && [ "$use_hqq_rollout" != "False" ]; then
 fi
 if [ "$use_hqq_qat" != "True" ] && [ "$use_hqq_qat" != "False" ]; then
     echo "Error: use_hqq_qat must be either True or False" && exit 1
-fi
-if [ "$optimize_hqq_qat" != "True" ] && [ "$optimize_hqq_qat" != "False" ]; then
-    echo "Error: optimize_hqq_qat must be either True or False" && exit 1
 fi
 if [ "$use_hqq_rollout" = "True" ]; then
     rollout_name="vllm_hqq"
@@ -56,8 +53,8 @@ python3 -m verl.trainer.main_ppo \
     data.train_files="$train_files" \
     data.val_files="$test_files" \
     data.train_batch_size=1024 \
-    data.max_prompt_length=1024 \
-    data.max_response_length=1024 \
+    data.max_prompt_length=2048 \
+    data.max_response_length=2048 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     actor_rollout_ref.model.path=$model \
@@ -73,18 +70,18 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
     actor_rollout_ref.actor.checkpoint.contents=['model','optimizer','extra','hf_model'] \
-    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=8 \
+    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=32 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.75 \
     actor_rollout_ref.rollout.max_num_batched_tokens=16384 \
     actor_rollout_ref.rollout.n=8 \
-    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=8 \
+    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=32 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.rollout.name=$rollout_name \
     actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \
     actor_rollout_ref.actor.fsdp_config.use_hqq_qat=$use_hqq_qat \
     actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=$hqq_weight_bits \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.optimize=$optimize_hqq_qat \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.update_metadata=$update_hqq_qat_metadata \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
     trainer.logger=['console','tensorboard'] \
@@ -94,4 +91,4 @@ python3 -m verl.trainer.main_ppo \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
     trainer.test_freq=5 \
-    trainer.total_epochs=15 $@
+    trainer.total_epochs=8 $@
