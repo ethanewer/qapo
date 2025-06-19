@@ -418,6 +418,26 @@ class DataParallelPPOActor(BasePPOActor):
                         metrics["actor/kl_loss"] = kl_loss.detach().item()
                         metrics["actor/kl_coef"] = self.config.kl_loss_coef
 
+                    # --------------- NEW ---------------
+                    fsdp_config = self.config.fsdp_config
+                    if fsdp_config.get("use_hqq_qat", False) and fsdp_config.hqq_qat_config.kl_div_qat_penalty_coef > 0:
+                        from verl.hqq_qat import disable_hqq_qat, enable_hqq_qat
+
+                        disable_hqq_qat(self.actor_module.model)
+
+                        with torch.no_grad():
+                            _, unquantized_log_prob = self._forward_micro_batch(micro_batch=data, temperature=temperature)
+
+                        qat_kld = kl_penalty(logprob=log_prob, ref_logprob=unquantized_log_prob, kl_penalty=self.config.kl_loss_type)
+                        qat_kl_loss = agg_loss(loss_mat=qat_kld, loss_mask=response_mask, loss_agg_mode=loss_agg_mode)
+
+                        policy_loss = policy_loss + qat_kl_loss * fsdp_config.hqq_qat_config.kl_div_qat_penalty_coef
+                        metrics["actor/qat_kl_loss"] = qat_kl_loss.detach().item()
+                        metrics["actor/qat_kl_coef"] = fsdp_config.hqq_qat_config.kl_div_qat_penalty_coef
+
+                        enable_hqq_qat(self.actor_module.model)
+                    # -----------------------------------
+
                     if self.config.use_dynamic_bsz:
                         # relative to the dynamic bsz
                         loss = policy_loss * (len(data) / self.config.ppo_mini_batch_size)

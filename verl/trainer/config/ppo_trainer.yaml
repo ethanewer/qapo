@@ -241,15 +241,25 @@ actor_rollout_ref:
       # Whether to use quantization aware training with hqq quantization
       use_hqq_qat: false
 
-      # Quantization config if actor_rollout_ref.use_hqq_qat=true
+      # HQQ QAT Config
       hqq_qat_config:
-        nbits: 4
-        group_size: 64
-        axis: 1
-        round_zero: true
-        optimize: true
-        bitpack: false
-        update_metadata: rollout  # update QAT metadata when 'rollout' or 'actor' metadata is updated
+        # update QAT metadata when 'rollout' or 'actor' metadata is updated
+        update_metadata: rollout 
+
+        # Exponential moving average parameter (scale = beta * scale + (1 - beta) * new_scale)
+        beta: 0.0
+
+        # Add KL-div QAT Penalty
+        kl_div_qat_penalty_coef: 0.0
+
+        # Quantization config if actor_rollout_ref.use_hqq_qat=true
+        quant_config:
+          nbits: 4
+          group_size: 64
+          axis: 1
+          round_zero: true
+          optimize: true
+          bitpack: false
 
       # policy for wrapping the model
       wrap_policy:

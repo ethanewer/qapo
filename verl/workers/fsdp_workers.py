@@ -270,9 +270,11 @@ class ActorRolloutRefWorker(Worker):
                 assert hasattr(actor_module, "lm_head") and hasattr(actor_module, "model"), "self.actor_module does not have expected structure."
                 assert isinstance(actor_module.model, torch.nn.Module)
 
-                hqq_qat_config = fsdp_config["hqq_qat_config"]
-                replace_linear_with_fake_hqq(actor_module.model, hqq_qat_config)
-                print("HQQ ROLLOUT CONFIG:", hqq_qat_config)
+                replace_linear_with_fake_hqq(
+                    module=actor_module.model,
+                    hqq_qat_config=fsdp_config.hqq_qat_config,
+                )
+                print("HQQ ROLLOUT CONFIG:", fsdp_config.hqq_qat_config, f"{fsdp_config.update_metadata=}")
             # -----------------------------------
 
         torch.distributed.barrier()

@@ -5,6 +5,8 @@ use_hqq_rollout=True
 hqq_weight_bits=4
 use_hqq_qat=True
 update_hqq_qat_metadata=rollout
+hqq_qat_beta=0
+kl_div_qat_penalty_coef=0
 
 model="Qwen/Qwen2.5-1.5B-Instruct"
 
@@ -80,8 +82,10 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.name=$rollout_name \
     actor_rollout_ref.rollout.hqq_config.weight_bits=$hqq_weight_bits \
     actor_rollout_ref.actor.fsdp_config.use_hqq_qat=$use_hqq_qat \
-    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.nbits=$hqq_weight_bits \
     actor_rollout_ref.actor.fsdp_config.hqq_qat_config.update_metadata=$update_hqq_qat_metadata \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.kl_div_qat_penalty_coef=$kl_div_qat_penalty_coef \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.beta=$hqq_qat_beta \
+    actor_rollout_ref.actor.fsdp_config.hqq_qat_config.quant_config.nbits=$hqq_weight_bits \
     trainer.val_before_train=False \
     trainer.critic_warmup=0 \
     trainer.logger=['console','tensorboard'] \

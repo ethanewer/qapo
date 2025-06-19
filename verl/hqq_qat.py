@@ -28,59 +28,81 @@ class QuantizeSTE(torch.autograd.Function):
 @dataclass
 class FakeHQQData:
     quant_config: dict[str, Any]
+    update_metadata: str
     max_quantized_value: float
-    quant_data: Optional[dict[str, Any]]
+    scale: Optional[Tensor] = None
+    zero: Optional[Tensor] = None
+    beta: float = 0.0
+    use_qat: bool = True
+
+    def update(self, new_scale: Tensor, new_zero: Tensor) -> None:
+        if self.scale is None or self.zero is None:
+            self.scale = new_scale
+            self.zero = new_zero
+        else:
+            self.scale = self.beta * self.scale + (1 - self.beta) * new_scale
+            self.zero = self.beta * self.zero + (1 - self.beta) * new_zero
 
 
 class FakeHQQLinear(nn.Linear):
     fake_hqq_data: FakeHQQData
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        if self.fake_hqq_data.quant_data is None:
-            with torch.no_grad():
-                _, self.fake_hqq_data.quant_data = Quantizer.quantize(
-                    self.weight.detach(),
-                    device=input.device,
-                    compute_dtype=input.dtype,
-                    **self.fake_hqq_data.quant_config,
-                )
-                for key in self.fake_hqq_data.quant_data:
-                    value = self.fake_hqq_data.quant_data[key]
-                    if isinstance(value, torch.Tensor):
-                        self.fake_hqq_data.quant_data[key] = value.to(self.weight.dtype)
+        if self.fake_hqq_data.use_qat:
+            if self.fake_hqq_data.scale is None or self.fake_hqq_data.zero is None:
+                assert self.fake_hqq_data.update_metadata == "actor"
 
-            assert self.fake_hqq_data.quant_data is not None
+                with torch.no_grad():
+                    _, metadata = Quantizer.quantize(
+                        self.weight.detach(),
+                        device=input.device,
+                        compute_dtype=input.dtype,
+                        **self.fake_hqq_data.quant_config,
+                    )
+                    self.fake_hqq_data.update(metadata["scale"].to(self.weight.dtype), metadata["zero"].to(self.weight.dtype))
 
-        if self.fake_hqq_data.quant_config["axis"] == 1:
-            weight = self.weight.view(-1, self.fake_hqq_data.quant_config["group_size"])
+            if self.fake_hqq_data.quant_config["axis"] == 1:
+                weight = self.weight.view(-1, self.fake_hqq_data.quant_config["group_size"])
+            else:
+                weight = self.weight.view(self.fake_hqq_data.quant_config["group_size"], -1)
+
+            fake_quantized_weight: torch.Tensor = QuantizeSTE.apply(
+                weight,
+                self.fake_hqq_data.scale.detach(),
+                self.fake_hqq_data.zero.detach(),
+                self.fake_hqq_data.max_quantized_value,
+            )
+
+            return F.linear(input, fake_quantized_weight.view(self.weight.shape), self.bias)
         else:
-            weight = self.weight.view(self.fake_hqq_data.quant_config["group_size"], -1)
-
-        fake_quantized_weight: torch.Tensor = QuantizeSTE.apply(
-            weight,
-            self.fake_hqq_data.quant_data["scale"].detach(),
-            self.fake_hqq_data.quant_data["zero"].detach(),
-            self.fake_hqq_data.max_quantized_value,
-        )
-
-        return F.linear(input, fake_quantized_weight.view(self.weight.shape), self.bias)
+            return F.linear(input, self.weight.shape, self.bias)
 
 
-def patch_linear_with_fake_hqq(linear: nn.Linear, quant_config: dict[str, Any]) -> None:
+def patch_linear_with_fake_hqq(
+    linear: nn.Linear,
+    hqq_qat_config: dict[str, Any],
+) -> None:
     linear.fake_hqq_data = FakeHQQData(
-        quant_config=quant_config,
-        max_quantized_value=round(2 ** quant_config["nbits"] - 1),
-        quant_data=None,
+        quant_config=hqq_qat_config["quant_config"],
+        update_metadata=hqq_qat_config["update_metadata"],
+        max_quantized_value=round(2 ** hqq_qat_config["quant_config"]["nbits"] - 1),
+        scale=None,
+        zero=None,
+        beta=hqq_qat_config["beta"],
+        use_qat=True,
     )
     linear.forward = FakeHQQLinear.forward.__get__(linear, type(linear))
 
 
-def replace_linear_with_fake_hqq(module: nn.Module, quant_config: dict[str, Any]) -> None:
+def replace_linear_with_fake_hqq(
+    module: nn.Module,
+    hqq_qat_config: dict[str, Any],
+) -> None:
     for child in list(module.children()):
         if isinstance(child, nn.Linear):
-            patch_linear_with_fake_hqq(child, quant_config)
+            patch_linear_with_fake_hqq(child, hqq_qat_config)
         else:
-            replace_linear_with_fake_hqq(child, quant_config)
+            replace_linear_with_fake_hqq(child, hqq_qat_config)
 
 
 def clear_fake_hqq_quant_data(module: nn.Module) -> None:
@@ -88,6 +110,27 @@ def clear_fake_hqq_quant_data(module: nn.Module) -> None:
         if isinstance(child, nn.Linear):
             if hasattr(child, "fake_hqq_data"):
                 assert isinstance(child.fake_hqq_data, FakeHQQData)
-                child.fake_hqq_data.quant_data = None
+                child.fake_hqq_data.scale = None
+                child.fake_hqq_data.zero = None
         else:
             clear_fake_hqq_quant_data(child)
+
+
+def enable_hqq_qat(module: nn.Module) -> None:
+    for child in list(module.children()):
+        if isinstance(child, nn.Linear):
+            if hasattr(child, "fake_hqq_data"):
+                assert isinstance(child.fake_hqq_data, FakeHQQData)
+                child.fake_hqq_data.use_qat = True
+        else:
+            enable_hqq_qat(child)
+
+
+def disable_hqq_qat(module: nn.Module) -> None:
+    for child in list(module.children()):
+        if isinstance(child, nn.Linear):
+            if hasattr(child, "fake_hqq_data"):
+                assert isinstance(child.fake_hqq_data, FakeHQQData)
+                child.fake_hqq_data.use_qat = False
+        else:
+            disable_hqq_qat(child)
