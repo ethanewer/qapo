@@ -35,6 +35,7 @@ class FakeHQQData:
     beta: float = 0.0
     use_qat: bool = True
     num_updates: int = 0
+    update_next: bool = True
 
     @property
     def scale(self) -> Optional[Tensor]:
@@ -79,8 +80,9 @@ class FakeHQQLinear(nn.Linear):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         if self.fake_hqq_data.use_qat:
-            if self.fake_hqq_data.scale is None or self.fake_hqq_data.zero is None:
+            if self.fake_hqq_data.update_next:
                 self.update()
+                self.fake_hqq_data.update_next = False
 
             if self.fake_hqq_data.quant_config["axis"] == 1:
                 weight = self.weight.view(-1, self.fake_hqq_data.quant_config["group_size"])
@@ -129,7 +131,7 @@ def update_hqq_quant_data(module: nn.Module) -> None:
         if isinstance(child, nn.Linear):
             if hasattr(child, "fake_hqq_data"):
                 assert isinstance(child.fake_hqq_data, FakeHQQData)
-                child.update()
+                child.fake_hqq_data.update_next = True
         else:
             update_hqq_quant_data(child)
 
