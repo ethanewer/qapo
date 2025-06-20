@@ -23,7 +23,7 @@ experiment_name=$(echo "${model#*/}" | sed 's/[.-]/_/g' | tr '[:upper:]' '[:lowe
 if [ "$use_qat" = "True" ]; then
     experiment_name="${experiment_name}_${qat_w_bits}bit_qat"
 fi
-if [ "$use_hqq_rollout" = "True" ]; then
+if [ "$use_quantized_rollout" = "True" ]; then
     experiment_name="${experiment_name}_with_quantized_rollout"
 else
     experiment_name="${experiment_name}_grpo"
