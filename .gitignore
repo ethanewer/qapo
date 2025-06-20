@@ -124,3 +124,6 @@ logs
 log
 outputs
 .history
+core
+*x86_64.whl*
+tensorboard_log*
