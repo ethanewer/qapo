@@ -169,6 +169,7 @@ class FSDPVLLMShardingManager(BaseShardingManager):
                 peft_config = peft_model.peft_config.get("default", None)
                 params = __collect_lora_params()
             else:
+                # --------------- NEW ---------------
                 if self.actor_rollout_ref_config.rollout.get("use_fake_quantized_weights", False):
                     from verl.paretoq_qat import get_fake_quantized_state_dict
 
@@ -176,6 +177,7 @@ class FSDPVLLMShardingManager(BaseShardingManager):
                     params = get_fake_quantized_state_dict(self.module)
                 else:
                     params = self.module.state_dict()
+                # -----------------------------------
 
             params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
