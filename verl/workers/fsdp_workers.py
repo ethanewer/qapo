@@ -238,7 +238,7 @@ class ActorRolloutRefWorker(Worker):
 
             # Apply Liger kernel to the model if use_liger is set to True
             if use_liger:
-                from liger_kernel.transformers.monkey_patch import _apply_liger_kernel_to_instance
+                from liger_kernel.transformers.monkey_patch import _apply_liger_kernel_to_instance  # type: ignore
 
                 _apply_liger_kernel_to_instance(model=actor_module)
 
@@ -260,6 +260,22 @@ class ActorRolloutRefWorker(Worker):
                 # Convert config to regular Python types before creating PEFT model
                 lora_config = {"task_type": TaskType.CAUSAL_LM, "r": self.config.model.lora_rank, "lora_alpha": self.config.model.lora_alpha, "target_modules": convert_to_regular_types(self.config.model.target_modules), "bias": "none"}
                 actor_module = get_peft_model(actor_module, LoraConfig(**lora_config))
+
+            # --------------- NEW ---------------
+            if self.config.actor.get("use_qat", False):
+                from verl.paretoq_qat import replace_linear_with_quantized_linear
+
+                assert not self._is_lora, "LORA with QAT is not supported yet."
+                assert "qat_w_bits" in self.config.actor, "self.config.actor.qat_w_bits must be provided if actor_rollout_ref.actor.use_qat=True."
+                assert hasattr(actor_module, "lm_head") and hasattr(actor_module, "model"), "self.actor_module does not have expected structure."
+
+                replace_linear_with_quantized_linear(
+                    module=actor_module.model,
+                    hqq_qat_config=self.config.actor.qat_w_bits,
+                )
+                print(f"Using {self.config.actor.qat_w_bits}-bit QAT")
+            # -----------------------------------
+
         torch.distributed.barrier()
 
         if self.rank == 0:
@@ -422,6 +438,7 @@ class ActorRolloutRefWorker(Worker):
                 offload_param=self._is_offload_param,
                 load_format=self.config.rollout.load_format,
                 layered_summon=self.config.rollout.get("layered_summon", False),
+                actor_rollout_ref_config=self.config,
             )
             log_gpu_memory_usage("After building sharding manager", logger=logger)
 
@@ -850,7 +867,7 @@ class CriticWorker(Worker):
         torch_dtype = self.config.model.fsdp_config.get("model_dtype", "fp32")
         torch_dtype = PrecisionType.to_dtype(torch_dtype)
 
-        from transformers import AutoConfig, AutoModelForTokenClassification
+        from transformers import AutoConfig
 
         critic_model_config = AutoConfig.from_pretrained(local_path, attn_implementation="flash_attention_2", trust_remote_code=config.model.get("trust_remote_code", False))
         critic_model_config.num_labels = 1
@@ -1231,7 +1248,7 @@ class RewardModelWorker(Worker):
 
     def _forward_micro_batch(self, micro_batch):
         if is_cuda_available:
-            from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+            from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input  # type: ignore
         elif is_npu_available:
             from transformers.integrations.npu_flash_attention import index_first_axis, pad_input, rearrange, unpad_input
 

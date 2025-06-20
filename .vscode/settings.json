@@ -5,6 +5,7 @@
             "source.organizeImports": "always",
         }
     },
+    "python.analysis.typeCheckingMode": "off",
     "files.associations": {
         "array": "cpp",
         "string_view": "cpp",

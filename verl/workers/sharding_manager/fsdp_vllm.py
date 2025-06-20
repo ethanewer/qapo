@@ -51,11 +51,12 @@ logger.setLevel(os.getenv("VERL_LOGGING_LEVEL", "WARN"))
 
 class FSDPVLLMShardingManager(BaseShardingManager):
     @check_device_is_available()
-    def __init__(self, module: FSDP, inference_engine: LLM, model_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):
+    def __init__(self, module: FSDP, inference_engine: LLM, model_config, actor_rollout_ref_config, full_params: bool = False, device_mesh: DeviceMesh = None, offload_param: bool = False, load_format: str = "dummy_hf", layered_summon: bool = True):
         self.module = module
         # For AsyncLLM, inference_engine and model_runner are defer initialized in vLLMAsyncRollout.load_model
         self.inference_engine = inference_engine
         # self.model_runner = inference_engine.llm_engine.model_executor.driver_worker.worker.model_runner if inference_engine else None
+        self.actor_rollout_ref_config = actor_rollout_ref_config
 
         if "vllm_v_0_6_3" in str(type(self.inference_engine)) or "vllm_v_0_5_4" in str(type(self.inference_engine)):
             # vLLM <= v0.6.3
@@ -164,10 +165,18 @@ class FSDPVLLMShardingManager(BaseShardingManager):
             peft_config = None
             peft_model = getattr(self.module, "_fsdp_wrapped_module", self.module)
             if hasattr(peft_model, "peft_config"):
+                assert not self.actor_rollout_ref_config.rollout.get("use_fake_quantized_weights", False), "LORA with QAT is not supported yet."
                 peft_config = peft_model.peft_config.get("default", None)
                 params = __collect_lora_params()
             else:
-                params = self.module.state_dict()
+                if self.actor_rollout_ref_config.rollout.get("use_fake_quantized_weights", False):
+                    from verl.paretoq_qat import get_fake_quantized_state_dict
+
+                    assert self.actor_rollout_ref_config.actor.get("use_qat", False), " Cannot use quantized rollout without QAT."
+                    params = get_fake_quantized_state_dict(self.module)
+                else:
+                    params = self.module.state_dict()
+
             params = convert_weight_keys(params, getattr(self.module, "_fsdp_wrapped_module", self.module))
             log_gpu_memory_usage("After state_dict() in sharding manager memory", logger=logger)
 
