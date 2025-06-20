@@ -209,7 +209,7 @@ def patch_linear_with_quantized_linear(linear: nn.Linear, w_bits: int = 16, weig
     linear.w_bits = w_bits
     linear.weight_layerwise = weight_layerwise
     if w_bits < 16:
-        linear.weight_clip_val = nn.Parameter(torch.Tensor(linear.weight.shape[0], 1))
+        linear.weight_clip_val = nn.Parameter(torch.Tensor(linear.weight.shape[0], 1, dtype=linear.weight.dtype, device=linear.weight.device))
         with torch.no_grad():
             if w_bits == 1:
                 scale = torch.mean(linear.weight.abs(), dim=-1, keepdim=True).detach()
