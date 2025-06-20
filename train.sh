@@ -68,7 +68,7 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.n=8 \
     actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=32 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
-    actor_rollout_ref.rollout.name=$rollout_name \
+    actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.actor.use_qat=$use_qat \
     actor_rollout_ref.actor.qat_w_bits=$qat_w_bits \
     actor_rollout_ref.rollout.use_fake_quantized_weights=$use_quantized_rollout \
