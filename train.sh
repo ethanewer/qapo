@@ -20,17 +20,11 @@ fi
 
 # Set experiment name
 experiment_name=$(echo "${model#*/}" | sed 's/[.-]/_/g' | tr '[:upper:]' '[:lower:]')
-if [ "$use_hqq_qat" = "True" ]; then
-    if [ "$optimize_hqq_qat" = "True" ]; then
-        experiment_name="${experiment_name}_optimized"
-    fi
-    experiment_name="${experiment_name}_qat"
+if [ "$use_qat" = "True" ]; then
+    experiment_name="${experiment_name}_${hqq_weight_bits}bit_qat"
 fi
 if [ "$use_hqq_rollout" = "True" ]; then
-    experiment_name="${experiment_name}_qapo"
-fi
-if [ "$use_hqq_rollout" = "True" ] || [ "$use_hqq_qat" = "True" ]; then
-    experiment_name="${experiment_name}_${hqq_weight_bits}bit"
+    experiment_name="${experiment_name}_with_quantized_rollout"
 else
     experiment_name="${experiment_name}_grpo"
 fi
