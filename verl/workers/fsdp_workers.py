@@ -271,7 +271,7 @@ class ActorRolloutRefWorker(Worker):
 
                 replace_linear_with_quantized_linear(
                     module=actor_module.model,
-                    hqq_qat_config=self.config.actor.qat_w_bits,
+                    w_bits=self.config.actor.qat_w_bits,
                 )
                 print(f"Using {self.config.actor.qat_w_bits}-bit QAT")
             # -----------------------------------
